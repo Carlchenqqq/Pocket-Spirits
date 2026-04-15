@@ -85,6 +85,7 @@ class UIManager {
 
     /** 显示按钮弹框 */
     showButtonDialog(text, buttons, callback) {
+        console.log('[UI] showButtonDialog:', text, '| buttons:', buttons);
         this.buttonDialogActive = true;
         this.buttonDialogText = text;
         this.buttonDialogButtons = buttons;
@@ -102,6 +103,7 @@ class UIManager {
     /** 渲染按钮弹框 */
     renderButtonDialog() {
         if (!this.buttonDialogActive) return;
+        // console.log('[UI] renderButtonDialog active, text:', this.buttonDialogText); // 每帧打印太吵，需要时取消注释
 
         const ctx = this.ctx;
         const boxW = 300;
@@ -173,6 +175,14 @@ class UIManager {
             this.buttonDialogSelectedIndex = (this.buttonDialogSelectedIndex + 1) % btnCount;
         }
 
+        // ESC / 取消键：关闭弹框（触发最后一个按钮=取消）
+        if (input.isCancelPressed()) {
+            const callback = this.buttonDialogCallback;
+            this.closeButtonDialog();
+            if (callback) callback(btnCount - 1); // 默认取消
+            return true;
+        }
+
         // 确认/点击
         if (input.isConfirmPressed(now)) {
             const index = this.buttonDialogSelectedIndex;
@@ -195,7 +205,12 @@ class UIManager {
                     if (callback) callback(clickedBtnIdx);
                     return true;
                 }
-                // 点击弹窗外部区域不响应
+                // 点击弹窗外部区域 = 取消
+                input.clearClick();
+                const callback = this.buttonDialogCallback;
+                this.closeButtonDialog();
+                if (callback) callback(btnCount - 1); // 默认取消
+                return true;
             } else {
                 // hasPendingClick 为 true 但 getClick 返回 null（理论上不会发生）
                 input.clearClick();

@@ -185,7 +185,7 @@ class ExploreScene extends Scene {
         g.ui.renderHUD(g.creaturesManager, g.mapManager);
 
         if (this.gameMenuOpen) this._renderGameMenu();
-        if (this.bagMode) g.ui.renderBag(g.creaturesManager);
+        if (this.bagMode) { g.ui.renderBag(g.creaturesManager); g.ui.renderButtonDialog(); }
         if (this.dexMode) this._renderDex();
     }
 
@@ -315,16 +315,21 @@ class ExploreScene extends Scene {
         if (index < 0 || index >= items.length) return;
         const item = items[index];
         const data = g.creaturesManager.getItemData(item.itemId);
-        if (!data) return;
+        console.log('[Bag] use item:', index, '| itemId:', item.itemId, '| data:', data, '| type:', data?.type);
+        if (!data) { console.log('[Bag] no data, abort'); return; }
         if (data.type === 'potion') {
             const target = g.creaturesManager.getFirstAlive();
             if (!target) { g.ui.showMessage('没有存活的精灵'); return; }
             if (target.currentHP >= target.maxHP) { g.ui.showMessage(`${target.name}已经满血了`); return; }
+            console.log('[Bag] showing button dialog for potion');
             g.ui.showButtonDialog(`对 ${target.name} 使用 ${data.name}？`, ['确认使用', '取消'], (btnIndex) => {
+                console.log('[Bag] button dialog callback, btnIndex:', btnIndex);
                 if (btnIndex === 0) {
                     g.creaturesManager.useItem(item.itemId);
                     target.currentHP = Math.min(target.maxHP, target.currentHP + data.healAmount);
                     g.ui.showMessage(`${target.name}恢复了${data.healAmount}HP！`);
+                } else {
+                    console.log('[Bag] cancelled');
                 }
             });
         } else g.ui.showMessage('这个道具无法在这里使用');
