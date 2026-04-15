@@ -192,7 +192,12 @@ class ExploreScene extends Scene {
     // ========== 游戏菜单 ==========
     _updateGameMenu(now) {
         const g = this.game;
-        
+
+        // 共享常量：与 _renderGameMenu 保持一致！
+        const MENU_X = 10, MENU_Y = 30;
+        const ITEM_START_Y = MENU_Y + 30;  // 标题下方开始
+        const ITEM_H = 22;                 // 与渲染 forEach 的 i * 22 一致
+
         // 先处理键盘导航（更新高亮）
         if (g.input.isJustPressed('ArrowUp') || g.input.isJustPressed('KeyW')) {
             this.gameMenuIndex = Math.max(0, this.gameMenuIndex - 1);
@@ -203,13 +208,12 @@ class ExploreScene extends Scene {
             g.input.lastActionTime = now;
         }
 
-        // 再处理点击（点击优先于当前高亮索引）
+        // 再处理点击（用与渲染相同的坐标）
         if (g.input.hasPendingClick()) {
             const click = g.input.getClick();
             if (click) {
-                const menuX = 10, menuY = 30, itemStartY = menuY + 30, itemH = 22;
-                
-                if (click.x >= menuX && click.x <= menuX + 120 && click.y >= itemStartY && click.y <= itemStartY + this.gameMenuItems.length * itemH) {
+                if (click.x >= MENU_X && click.x <= MENU_X + 120 &&
+                    click.y >= ITEM_START_Y && click.y < ITEM_START_Y + this.gameMenuItems.length * ITEM_H) {
                     const idx = Math.floor((click.y - itemStartY) / itemH);
                     if (idx >= 0 && idx < this.gameMenuItems.length) {
                         // 直接用点击位置确定的 idx，不用 gameMenuIndex
@@ -267,8 +271,10 @@ class ExploreScene extends Scene {
 
     _renderGameMenu() {
         const ctx = this.game.ctx;
-        const menuW = 120, menuX = 10, menuY = 30;
-        const menuH = 30 + this.gameMenuItems.length * 22 + 10;
+        // 与 _updateGameMenu 共享的常量
+        const MENU_X = 10, MENU_Y = 30;
+        const ITEM_START_Y = MENU_Y + 30, ITEM_H = 22;
+        const menuW = 120, menuH = ITEM_START_Y + this.gameMenuItems.length * ITEM_H + 10 - MENU_Y;
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.fillRect(menuX, menuY, menuW, menuH);
         ctx.strokeStyle = '#FFD700';
@@ -279,7 +285,7 @@ class ExploreScene extends Scene {
         ctx.fillText('菜单', menuX + 10, menuY + 18);
         ctx.font = '11px monospace';
         this.gameMenuItems.forEach((item, i) => {
-            const iy = menuY + 30 + i * 22;
+            const iy = ITEM_START_Y + i * ITEM_H;
             if (i === this.gameMenuIndex) {
                 ctx.fillStyle = 'rgba(255,215,0,0.2)';
                 ctx.fillRect(menuX + 4, iy - 10, menuW - 8, 20);
