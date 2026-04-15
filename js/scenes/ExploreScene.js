@@ -212,9 +212,11 @@ class ExploreScene extends Scene {
         if (g.input.hasPendingClick()) {
             const click = g.input.getClick();
             if (click) {
+                // 检测区与渲染高亮条对齐（高亮条从 iy-10 到 iy+10）
+                const DETECT_Y = ITEM_START_Y - 10;
                 if (click.x >= MENU_X && click.x <= MENU_X + 120 &&
-                    click.y >= ITEM_START_Y && click.y < ITEM_START_Y + this.gameMenuItems.length * ITEM_H) {
-                    const idx = Math.floor((click.y - ITEM_START_Y) / ITEM_H);
+                    click.y >= DETECT_Y && click.y < DETECT_Y + this.gameMenuItems.length * ITEM_H) {
+                    const idx = Math.floor((click.y - DETECT_Y) / ITEM_H);
                     if (idx >= 0 && idx < this.gameMenuItems.length) {
                         // 直接用点击位置确定的 idx，不用 gameMenuIndex
                         this._executeMenuItem(idx);
