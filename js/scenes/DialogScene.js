@@ -17,13 +17,19 @@ class DialogScene extends Scene {
     update(deltaTime) {
         const g = this.game;
         const now = performance.now();
+
+        // 对话回调已触发新场景（战斗/商店等），不再处理输入
+        if (this._scenePushed && g.state !== 'DIALOG') {
+            return;
+        }
+
         g.ui.update(deltaTime);
 
         if (g.input.hasPendingClick()) {
             g.input.clearClick();
             if (!g.ui.dialogConfirm()) {
                 if (this._scenePushed) {
-                    this._scenePushed = false;
+                    // 对话回调中已 push 新场景，等待新场景接管
                     return;
                 }
                 if (this.titleChoiceActive) {
@@ -45,7 +51,7 @@ class DialogScene extends Scene {
         if (g.input.isConfirmPressed(now)) {
             if (!g.ui.dialogConfirm()) {
                 if (this._scenePushed) {
-                    this._scenePushed = false;
+                    // 对话回调中已 push 新场景，等待新场景接管
                     return;
                 }
                 if (this.titleChoiceActive) {

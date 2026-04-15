@@ -286,15 +286,25 @@ class ExploreScene extends Scene {
         if (g.input.hasPendingClick()) {
             const click = g.input.getClick();
             if (click) {
-                const boxX = 30, boxY = 20, listStartY = boxY + 35, itemH = 25;
-                if (click.x >= boxX && click.x <= boxX + 580 && click.y >= listStartY && click.y <= listStartY + items.length * itemH) {
+                // 返回按钮检测
+                const boxX = 30, boxY = 20, boxW = g.W - 60;
+                const backBtnW = 50, backBtnH = 22;
+                const backBtnX = boxX + boxW - backBtnW - 8;
+                const backBtnY = boxY + 6;
+                if (click.x >= backBtnX && click.x <= backBtnX + backBtnW &&
+                    click.y >= backBtnY && click.y <= backBtnY + backBtnH) {
+                    this.bagMode = false; g.ui.closeBag(); return;
+                }
+                // 道具列表点击
+                const listStartY = boxY + 35, itemH = 25;
+                if (click.x >= boxX && click.x <= boxX + boxW && click.y >= listStartY && click.y <= listStartY + items.length * itemH) {
                     const idx = Math.floor((click.y - listStartY) / itemH);
                     if (idx >= 0 && idx < items.length) { g.ui.bagSelectedIndex = idx; this._requestUseItem(idx); return; }
                 } else { this.bagMode = false; g.ui.closeBag(); return; }
             }
         }
         if (g.input.isJustPressed('ArrowUp') || g.input.isJustPressed('KeyW')) g.ui.bagSelectedIndex = Math.max(0, g.ui.bagSelectedIndex - 1);
-        if (g.input.isJustPressed('ArrowDown') || g.input.isJustPressed('KeyS')) g.ui.bagSelectedIndex = Math.min(items.length - 1, g.ui.bagSelectedIndex + 1);
+        if (g.input.isJustPressed('ArrowDown') || g.input.isJustPressed('KeyS')) g.ui.bagSelectedIndex = Math.min(items.length - 1, g.ui.bagSelectedIndex);
         if (g.input.isConfirmPressed(now) && items.length > 0) this._requestUseItem(g.ui.bagSelectedIndex);
         if (g.input.isCancelPressed()) { this.bagMode = false; g.ui.closeBag(); }
     }
@@ -332,14 +342,20 @@ class ExploreScene extends Scene {
         if (g.input.hasPendingClick()) {
             const click = g.input.getClick();
             if (click) {
+                // 返回按钮
+                const backBtnW = 50, backBtnH = 22;
+                const backBtnX = g.W - backBtnW - 10, backBtnY = 8;
+                if (click.x >= backBtnX && click.x <= backBtnX + backBtnW &&
+                    click.y >= backBtnY && click.y <= backBtnY + backBtnH) { this.dexMode = false; return; }
+                // Tab 切换页签
                 if (click.y < 80) { this.dexPage = this.dexPage === 'creature' ? 'npc' : 'creature'; this.dexScrollIndex = 0; return; }
+                // 列表项
                 if (click.y >= startY && click.y < startY + maxVisible * itemH) {
                     const scrollStart = Math.max(0, Math.min(this.dexScrollIndex, keys.length - maxVisible));
                     const idx = scrollStart + Math.floor((click.y - startY) / itemH);
                     if (idx >= 0 && idx < keys.length) this.dexScrollIndex = idx;
                     return;
                 }
-                if (click.y >= startY + maxVisible * itemH) { this.dexMode = false; return; }
             }
         }
         if (g.input.isJustPressed('ArrowUp') || g.input.isJustPressed('KeyW')) this.dexScrollIndex = Math.max(0, this.dexScrollIndex - 1);
@@ -360,7 +376,22 @@ class ExploreScene extends Scene {
         ctx.textAlign = 'center';
         ctx.fillText('图鉴', W / 2, 30);
 
+        // 返回按钮
+        const backBtnW = 50, backBtnH = 22;
+        const backBtnX = W - backBtnW - 10, backBtnY = 8;
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+        ctx.fillRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('← 返回', backBtnX + backBtnW / 2, backBtnY + 15);
+        ctx.textAlign = 'left';
+
         const stats = cm.getDexStats();
+        ctx.font = '12px monospace';
         ctx.font = '12px monospace';
         ctx.fillStyle = '#AAA';
         ctx.fillText(`精灵: ${stats.encounteredCreatures}/${stats.totalCreatures} 遭遇  ${stats.caughtCreatures} 捕获  |  NPC: ${stats.totalNPCs} 遭遇`, W / 2, 50);

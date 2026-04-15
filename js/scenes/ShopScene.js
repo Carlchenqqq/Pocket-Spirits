@@ -9,7 +9,6 @@ class ShopScene extends Scene {
 
     update(deltaTime) {
         const g = this.game;
-        const now = performance.now();
         g.shopManager.update(deltaTime);
 
         if (g.input.hasPendingClick()) {
@@ -19,7 +18,15 @@ class ShopScene extends Scene {
                     g.shopManager.handleClick(click.x, click.y, g.creaturesManager);
                     return;
                 }
-                const W = 640, H = 480;
+                // 返回按钮检测
+                const W = 640;
+                const backBtnW = 50, backBtnH = 22;
+                const backBtnX = W - backBtnW - 10, backBtnY = 12;
+                if (click.x >= backBtnX && click.x <= backBtnX + backBtnW &&
+                    click.y >= backBtnY && click.y <= backBtnY + backBtnH) {
+                    g.shopManager.close(); g.sceneManager.pop(); return;
+                }
+                // 商品列表点击
                 const listTop = 87, listBottom = 95 + 4 * 50;
                 if (click.x >= 20 && click.x <= W - 20 && click.y >= listTop && click.y <= listBottom) {
                     const clickedIndex = Math.floor((click.y - listTop) / 50);
@@ -30,7 +37,6 @@ class ShopScene extends Scene {
                     g.shopManager.close();
                     g.sceneManager.pop();
                 }
-                return;
             }
         }
 

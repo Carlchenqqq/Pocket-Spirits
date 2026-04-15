@@ -458,6 +458,22 @@ class UIManager {
         ctx.font = 'bold 14px monospace';
         ctx.fillText('选择精灵', boxX + 10, boxY + 20);
 
+        // 返回按钮
+        const backBtnW = 50;
+        const backBtnH = 22;
+        const backBtnX = boxX + boxW - backBtnW - 8;
+        const backBtnY = boxY + 6;
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+        ctx.fillRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('← 返回', backBtnX + backBtnW / 2, backBtnY + 15);
+        ctx.textAlign = 'left';
+
         // 精灵列表
         const list = this.creatureSelectList || [];
         const startY = boxY + 35;
@@ -535,6 +551,22 @@ class UIManager {
         ctx.font = 'bold 14px monospace';
         ctx.fillText('背包', boxX + 10, boxY + 20);
 
+        // 返回按钮
+        const backBtnW = 50;
+        const backBtnH = 22;
+        const backBtnX = boxX + boxW - backBtnW - 8;
+        const backBtnY = boxY + 6;
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+        ctx.fillRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('← 返回', backBtnX + backBtnW / 2, backBtnY + 15);
+        ctx.textAlign = 'left';
+
         const items = this.bagItems || [];
         items.forEach((item, i) => {
             const data = creaturesManager.getItemData(item.itemId);
@@ -560,7 +592,7 @@ class UIManager {
 
         ctx.fillStyle = '#888';
         ctx.font = '11px monospace';
-        ctx.fillText('↑↓选择  点击/空格使用  ESC关闭', boxX + 10, boxY + boxH - 8);
+        ctx.fillText('↑↓选择  点击/空格使用', boxX + 10, boxY + boxH - 8);
     }
 
     // ==================== 初始精灵选择 ====================

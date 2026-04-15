@@ -102,6 +102,22 @@ class ShopManager {
         ctx.fillText('精灵商店', W / 2, 40);
         ctx.textAlign = 'left';
 
+        // 返回按钮
+        if (!this.confirming) {
+            const backBtnW = 50, backBtnH = 22;
+            const backBtnX = W - backBtnW - 10, backBtnY = 12;
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+            ctx.fillRect(backBtnX, backBtnY, backBtnW, backBtnH);
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(backBtnX, backBtnY, backBtnW, backBtnH);
+            ctx.fillStyle = '#FFD700';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('← 返回', backBtnX + backBtnW / 2, backBtnY + 15);
+            ctx.textAlign = 'left';
+        }
+
         // 金币显示
         ctx.fillStyle = '#FFD700';
         ctx.font = '14px monospace';
