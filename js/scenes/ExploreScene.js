@@ -214,7 +214,7 @@ class ExploreScene extends Scene {
             if (click) {
                 if (click.x >= MENU_X && click.x <= MENU_X + 120 &&
                     click.y >= ITEM_START_Y && click.y < ITEM_START_Y + this.gameMenuItems.length * ITEM_H) {
-                    const idx = Math.floor((click.y - itemStartY) / itemH);
+                    const idx = Math.floor((click.y - ITEM_START_Y) / ITEM_H);
                     if (idx >= 0 && idx < this.gameMenuItems.length) {
                         // 直接用点击位置确定的 idx，不用 gameMenuIndex
                         this._executeMenuItem(idx);
@@ -276,24 +276,24 @@ class ExploreScene extends Scene {
         const ITEM_START_Y = MENU_Y + 30, ITEM_H = 22;
         const menuW = 120, menuH = ITEM_START_Y + this.gameMenuItems.length * ITEM_H + 10 - MENU_Y;
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.fillRect(menuX, menuY, menuW, menuH);
+        ctx.fillRect(MENU_X, MENU_Y, menuW, menuH);
         ctx.strokeStyle = '#FFD700';
         ctx.lineWidth = 2;
-        ctx.strokeRect(menuX + 1, menuY + 1, menuW - 2, menuH - 2);
+        ctx.strokeRect(MENU_X + 1, MENU_Y + 1, menuW - 2, menuH - 2);
         ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 11px monospace';
-        ctx.fillText('菜单', menuX + 10, menuY + 18);
+        ctx.fillText('菜单', MENU_X + 10, MENU_Y + 18);
         ctx.font = '11px monospace';
         this.gameMenuItems.forEach((item, i) => {
             const iy = ITEM_START_Y + i * ITEM_H;
             if (i === this.gameMenuIndex) {
                 ctx.fillStyle = 'rgba(255,215,0,0.2)';
-                ctx.fillRect(menuX + 4, iy - 10, menuW - 8, 20);
+                ctx.fillRect(MENU_X + 4, iy - 10, menuW - 8, 20);
                 ctx.fillStyle = '#FFD700';
-                ctx.fillText('>', menuX + 8, iy + 2);
+                ctx.fillText('>', MENU_X + 8, iy + 2);
             }
             ctx.fillStyle = i === this.gameMenuIndex ? '#FFF' : '#AAA';
-            ctx.fillText(item, menuX + 22, iy + 2);
+            ctx.fillText(item, MENU_X + 22, iy + 2);
         });
     }
 
