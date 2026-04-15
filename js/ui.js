@@ -247,10 +247,9 @@ class UIManager {
     _showNextDialog() {
         if (this.dialogQueue.length === 0) {
             this.dialogActive = false;
-            if (this.dialogCallback) {
-                this.dialogCallback();
-                this.dialogCallback = null;
-            }
+            // 不在此处执行 callback！
+            // 对话结束后的回调（如启动战斗/打开商店）由 DialogScene._finishDialog() 处理
+            // 那里会先 pop DialogScene，再执行 callback，避免场景栈混乱
             return;
         }
         this.dialogActive = true;

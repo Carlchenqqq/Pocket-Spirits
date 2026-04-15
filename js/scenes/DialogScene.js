@@ -6,36 +6,21 @@ class DialogScene extends Scene {
         super(game);
         this.id = 'dialog';
         this.titleChoiceActive = false;
-        this._scenePushed = false;
     }
 
     onEnter() {
         this.titleChoiceActive = this.game.titleChoiceActive || false;
-        this._scenePushed = false;
     }
 
     update(deltaTime) {
         const g = this.game;
         const now = performance.now();
 
-        // 如果之前push了子场景（战斗/商店），现在又回来了，
-        // 说明子场景已经pop，我们需要自动pop自己回到探索场景
-        if (this._scenePushed) {
-            // 清理对话UI残留状态
-            g.ui.dialogActive = false;
-            g.ui.dialogQueue = [];
-            g.ui.dialogCallback = null;
-            this._scenePushed = false;
-            g.sceneManager.pop();
-            return;
-        }
-
         g.ui.update(deltaTime);
 
         if (g.input.hasPendingClick()) {
             g.input.clearClick();
             if (!g.ui.dialogConfirm()) {
-                // dialogConfirm 返回 false = 对话队列已空
                 if (this.titleChoiceActive) {
                     this.titleChoiceActive = false;
                     g.titleChoiceActive = false;
@@ -44,17 +29,17 @@ class DialogScene extends Scene {
                     } else {
                         g.ui.showMessage('读取失败，开始新游戏');
                     }
-                    g.sceneManager.pop();
-                    return;
                 }
-                g.sceneManager.pop();
+                // 对话结束，检查是否有回调需要执行
+                // 注意：如果回调中 push 了新场景（战斗/商店），
+                // 我们先 pop 自己，再执行回调，避免 DialogScene 残留在栈中
+                this._finishDialog();
             }
             return;
         }
 
         if (g.input.isConfirmPressed(now)) {
             if (!g.ui.dialogConfirm()) {
-                // dialogConfirm 返回 false = 对话队列已空
                 if (this.titleChoiceActive) {
                     this.titleChoiceActive = false;
                     g.titleChoiceActive = false;
@@ -63,11 +48,9 @@ class DialogScene extends Scene {
                     } else {
                         g.ui.showMessage('读取失败，开始新游戏');
                     }
-                    g.sceneManager.pop();
-                    return;
                 }
                 g.input.lastActionTime = now;
-                g.sceneManager.pop();
+                this._finishDialog();
             }
         }
 
@@ -78,9 +61,21 @@ class DialogScene extends Scene {
         }
     }
 
-    /** 标记对话回调中已push新场景，阻止立即pop */
-    markScenePushed() {
-        this._scenePushed = true;
+    /**
+     * 对话结束处理：先 pop 自己，再执行回调
+     * 回调中如果需要 push 新场景（战斗/商店），此时 DialogScene 已经不在栈中了，
+     * 不会造成卡死或场景栈混乱
+     */
+    _finishDialog() {
+        const g = this.game;
+        // 保存回调引用（pop 后 this 可能不再活跃）
+        const callback = g.ui.dialogCallback;
+        // 先 pop DialogScene
+        g.sceneManager.pop();
+        // 再执行回调（回调中可能 push battle/shop 等新场景）
+        if (callback) {
+            callback();
+        }
     }
 
     render(ctx) {
