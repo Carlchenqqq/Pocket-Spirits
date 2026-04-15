@@ -5,7 +5,7 @@
  */
 class BattleEngine {
     constructor(eventBus) {
-        this.eventBus = eventBus;
+        this.eventBus = eventBus || null;
         this.state = null;
 
         // 属性克制表（克制1.5x，被克制0.67x）— 完整版
@@ -37,7 +37,7 @@ class BattleEngine {
         playerCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
         enemyCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
         this._addLog(`野生的${enemyCreature.name}出现了！`);
-        this.eventBus.emit(GameEvents.BATTLE_START, this.state);
+        if (this.eventBus) this.eventBus.emit(GameEvents.BATTLE_START, this.state);
         return this.state;
     }
 
@@ -57,7 +57,7 @@ class BattleEngine {
         playerCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
         enemyCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
         this._addLog(`训练师${trainerNPC.name}发起了挑战！`);
-        this.eventBus.emit(GameEvents.BATTLE_START, this.state);
+        if (this.eventBus) this.eventBus.emit(GameEvents.BATTLE_START, this.state);
         return this.state;
     }
 
@@ -215,14 +215,14 @@ class BattleEngine {
             }
             this.state.result = 'win';
             this.state.phase = 'result';
-            this.eventBus.emit(GameEvents.BATTLE_END, { result: 'win' });
+            if (this.eventBus) this.eventBus.emit(GameEvents.BATTLE_END, { result: 'win' });
             return 'win';
         }
 
         if (this.state.playerCreature.currentHP <= 0) {
             this.state.result = 'lose';
             this.state.phase = 'result';
-            this.eventBus.emit(GameEvents.BATTLE_END, { result: 'lose' });
+            if (this.eventBus) this.eventBus.emit(GameEvents.BATTLE_END, { result: 'lose' });
             return 'lose';
         }
 

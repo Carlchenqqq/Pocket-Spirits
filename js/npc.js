@@ -117,7 +117,7 @@ class NPCManager {
         }
 
         gameManager.ui.showDialog(npc.dialogs, () => {
-            // 对话结束后由 DialogScene._finishDialog() 先 pop 再执行此回调
+            console.log('[NPC] trainer callback | stack:', [...gameManager.sceneManager.sceneStack]);
             // 创建训练师的精灵队伍
             const trainerParty = (npc.creatures || []).map(c =>
                 gameManager.creaturesManager.createCreature(c.creatureId, c.level)
@@ -125,6 +125,7 @@ class NPCManager {
 
             if (trainerParty.length > 0) {
                 gameManager.startTrainerBattle(npc, trainerParty);
+                console.log('[NPC] after startTrainerBattle | stack:', [...gameManager.sceneManager.sceneStack]);
             }
         });
         gameManager.setState('DIALOG');

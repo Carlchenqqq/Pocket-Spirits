@@ -30,9 +30,6 @@ class DialogScene extends Scene {
                         g.ui.showMessage('读取失败，开始新游戏');
                     }
                 }
-                // 对话结束，检查是否有回调需要执行
-                // 注意：如果回调中 push 了新场景（战斗/商店），
-                // 我们先 pop 自己，再执行回调，避免 DialogScene 残留在栈中
                 this._finishDialog();
             }
             return;
@@ -63,18 +60,18 @@ class DialogScene extends Scene {
 
     /**
      * 对话结束处理：先 pop 自己，再执行回调
-     * 回调中如果需要 push 新场景（战斗/商店），此时 DialogScene 已经不在栈中了，
-     * 不会造成卡死或场景栈混乱
      */
     _finishDialog() {
         const g = this.game;
-        // 保存回调引用（pop 后 this 可能不再活跃）
         const callback = g.ui.dialogCallback;
+        console.log('[DialogScene] _finishDialog | callback:', !!callback, '| stack:', [...g.sceneManager.sceneStack]);
         // 先 pop DialogScene
         g.sceneManager.pop();
+        console.log('[DialogScene] after pop | stack:', [...g.sceneManager.sceneStack], '| current:', g.sceneManager.getCurrentSceneId());
         // 再执行回调（回调中可能 push battle/shop 等新场景）
         if (callback) {
             callback();
+            console.log('[DialogScene] after callback | stack:', [...g.sceneManager.sceneStack], '| current:', g.sceneManager.getCurrentSceneId());
         }
     }
 

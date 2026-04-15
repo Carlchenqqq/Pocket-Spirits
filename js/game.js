@@ -9,6 +9,10 @@ class GameManager {
         this.W = this.canvas.width;
         this.H = this.canvas.height;
 
+        // 事件总线（必须在其他模块之前创建，因为 BattleEngine 等依赖它）
+        this.eventBus = new EventBus();
+        window.eventBus = this.eventBus;
+
         // 核心模块
         this.input = new InputManager(this.canvas);
         this.camera = new Camera(this.W, this.H);
@@ -22,10 +26,6 @@ class GameManager {
 
         // 玩家
         this.player = new Player(this.mapManager);
-
-        // 事件总线（暴露到全局供 Engine 使用）
-        this.eventBus = new EventBus();
-        window.eventBus = this.eventBus;
 
         // 场景管理器
         this.sceneManager = new SceneManager(this);
