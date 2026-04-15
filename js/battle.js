@@ -150,6 +150,7 @@ class BattleManager {
     selectRun() {
         const state = this.engine.state;
         if (state.battleType !== 'wild') {
+            this.ui.showMessage('训练师战斗中无法逃跑！');
             this.engine.addLog('训练师战斗中无法逃跑！');
             return;
         }

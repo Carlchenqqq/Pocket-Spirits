@@ -194,7 +194,7 @@ class BattleEngine {
 
         const pSpd = this.state.playerCreature.stats.speed;
         const eSpd = this.state.enemyCreature.stats.speed;
-        const runChance = Math.min(0.9, pSpd / (pSpd + eSpd) + 0.3);
+        const runChance = Math.min(0.9, pSpd / (pSpd + eSpd) + 0.45);
 
         return Math.random() < runChance;
     }
