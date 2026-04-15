@@ -53,11 +53,8 @@ class BattleManager {
         const playerCreature = this.cm.getFirstAlive();
 
         // 委托给 Engine 初始化
-        const state = this.engine.initWildBattle(playerCreature, creature);
-
-        // 把引擎 state 挂上 shakeOffset（渲染需要）
-        state._shakeOffset = this.shakeOffset;
-        state._shakeTarget = null;
+        this.engine.initWildBattle(playerCreature, creature);
+        this.shakeTarget = null;
     }
 
     /** 开始训练师战斗 */
@@ -67,9 +64,8 @@ class BattleManager {
         const playerCreature = this.cm.getFirstAlive();
         const enemyCreature = trainerParty.find(c => c.currentHP > 0);
 
-        const state = this.engine.initTrainerBattle(playerCreature, enemyCreature, trainerNPC, trainerParty);
-        state._shakeOffset = this.shakeOffset;
-        state._shakeTarget = null;
+        this.engine.initTrainerBattle(playerCreature, enemyCreature, trainerNPC, trainerParty);
+        this.shakeTarget = null;
         this.trainerParty = trainerParty;
     }
 
@@ -225,10 +221,8 @@ class BattleManager {
         this.engine.addLog(`造成了${damage}点伤害！`);
 
         this.shakeTarget = 'enemy';
-        state._shakeTarget = 'enemy';
         this._startAnim(600, () => {
             this.shakeTarget = null;
-            state._shakeTarget = null;
             if (enemy.currentHP <= 0) {
                 this.engine.addLog(`${enemy.name}倒下了！`);
                 this._handleEnemyFainted(callback);
@@ -271,10 +265,8 @@ class BattleManager {
         this.engine.addLog(`造成了${damage}点伤害！`);
 
         this.shakeTarget = 'player';
-        state._shakeTarget = 'player';
         this._startAnim(600, () => {
             this.shakeTarget = null;
-            state._shakeTarget = null;
             if (player.currentHP <= 0) {
                 this.engine.addLog(`${player.name}倒下了！`);
                 this._handlePlayerFainted(callback);
@@ -414,6 +406,9 @@ class BattleManager {
         if (s) {
             s.menuIndex = this.menuIndex;
             s.skillIndex = this.skillIndex;
+            // 渲染用：附加抖动状态到渲染参数（不污染引擎逻辑）
+            s._shakeOffset = this.shakeOffset;
+            s._shakeTarget = this.shakeTarget;
         }
         this.renderer.render(s, this.ui, this.cm);
     }

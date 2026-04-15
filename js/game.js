@@ -23,8 +23,9 @@ class GameManager {
         // 玩家
         this.player = new Player(this.mapManager);
 
-        // 事件总线
+        // 事件总线（暴露到全局供 Engine 使用）
         this.eventBus = new EventBus();
+        window.eventBus = this.eventBus;
 
         // 场景管理器
         this.sceneManager = new SceneManager(this);
