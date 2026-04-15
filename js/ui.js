@@ -159,26 +159,75 @@ class UIManager {
         });
     }
 
-    /** 处理按钮弹框输入 */
+    /** 处理按钮弹框输入（支持点击和键盘） */
     handleButtonDialogInput(input, now) {
         if (!this.buttonDialogActive) return false;
 
         const btnCount = this.buttonDialogButtons.length;
 
+        // 键盘方向键
         if (input.isJustPressed('ArrowLeft') || input.isJustPressed('KeyA')) {
             this.buttonDialogSelectedIndex = (this.buttonDialogSelectedIndex - 1 + btnCount) % btnCount;
         }
         if (input.isJustPressed('ArrowRight') || input.isJustPressed('KeyD')) {
             this.buttonDialogSelectedIndex = (this.buttonDialogSelectedIndex + 1) % btnCount;
         }
-        if (input.isConfirmPressed(now) || input.hasPendingClick()) {
-            if (input.hasPendingClick()) input.clearClick();
+
+        // 确认/点击
+        if (input.isConfirmPressed(now)) {
             const index = this.buttonDialogSelectedIndex;
             const callback = this.buttonDialogCallback;
             this.closeButtonDialog();
             if (callback) callback(index);
+            return true;
+        }
+
+        // 触摸/鼠标点击：检测点了哪个按钮
+        if (input.hasPendingClick()) {
+            const click = input.getClick();
+            if (click) {
+                const clickedBtnIdx = this._getButtonItemAt(click.x, click.y);
+                if (clickedBtnIdx >= 0) {
+                    // 点击了某个按钮，直接触发
+                    this.buttonDialogSelectedIndex = clickedBtnIdx;
+                    const callback = this.buttonDialogCallback;
+                    this.closeButtonDialog();
+                    if (callback) callback(clickedBtnIdx);
+                    return true;
+                }
+                // 点击弹窗外部区域不响应
+            } else {
+                // hasPendingClick 为 true 但 getClick 返回 null（理论上不会发生）
+                input.clearClick();
+                const index = this.buttonDialogSelectedIndex;
+                const callback = this.buttonDialogCallback;
+                this.closeButtonDialog();
+                if (callback) callback(index);
+                return true;
+            }
         }
         return true;
+    }
+
+    /** 获取点击位置对应的按钮索引 */
+    _getButtonItemAt(x, y) {
+        if (!this.buttonDialogActive) return -1;
+        const boxW = 300, boxH = 100;
+        const boxX = (this.W - boxW) / 2;
+        const boxY = (this.H - boxH) / 2;
+        const buttons = this.buttonDialogButtons;
+        const btnW = 100, btnH = 30;
+        const totalBtnW = buttons.length * btnW + (buttons.length - 1) * 20;
+        const startBtnX = (this.W - totalBtnW) / 2;
+
+        for (let i = 0; i < buttons.length; i++) {
+            const btnX = startBtnX + i * (btnW + 20);
+            const btnY = boxY + 50;
+            if (x >= btnX && x <= btnX + btnW && y >= btnY && y <= btnY + btnH) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     // ==================== 对话框 ====================

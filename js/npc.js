@@ -117,6 +117,8 @@ class NPCManager {
         }
 
         gameManager.ui.showDialog(npc.dialogs, () => {
+            const dialogScene = gameManager.sceneManager.scenes.get('dialog');
+            if (dialogScene) dialogScene.markScenePushed();
             // 创建训练师的精灵队伍
             const trainerParty = (npc.creatures || []).map(c =>
                 gameManager.creaturesManager.createCreature(c.creatureId, c.level)
@@ -133,6 +135,8 @@ class NPCManager {
     _handleShop(npc, gameManager) {
         gameManager.creaturesManager.recordNPCEncounter(npc.id, npc.name, npc.type);
         gameManager.ui.showDialog(npc.dialogs, () => {
+            const dialogScene = gameManager.sceneManager.scenes.get('dialog');
+            if (dialogScene) dialogScene.markScenePushed();
             gameManager.openShop();
         });
         gameManager.setState('DIALOG');

@@ -828,30 +828,46 @@ class BattleManager {
     handleInput(input, now) {
         if (!this.active) return;
 
-        // 点击模拟确认
+        // 点击处理（带坐标检测，支持直接点击选项）
         if (input.hasPendingClick()) {
-            input.clearClick();
-            // result 阶段点击 = 确认
-            if (this.phase === 'result') {
-                this.endBattle();
-                return;
-            }
-            // 菜单阶段点击 = 确认当前选项
-            if (this.phase === 'menu') {
-                this.lastActionTime = now;
-                switch (this.menuIndex) {
-                    case 0: this.selectAttack(); break;
-                    case 1: this.selectCatch(); break;
-                    case 2: this.selectSwitch(); break;
-                    case 3: this.selectRun(); break;
+            const click = input.getClick();
+            if (click) {
+                // result 阶段点击任意位置 = 确认
+                if (this.phase === 'result') {
+                    this.endBattle();
+                    return;
                 }
-                return;
-            }
-            // 技能选择阶段点击 = 确认当前技能
-            if (this.phase === 'skillSelect') {
-                this.lastActionTime = now;
-                this.confirmSkill();
-                return;
+                // 菜单阶段：检测点击了哪个按钮
+                if (this.phase === 'menu') {
+                    const clickedIdx = this._getMenuItemAt(click.x, click.y);
+                    if (clickedIdx >= 0) {
+                        this.menuIndex = clickedIdx;
+                        this.lastActionTime = now;
+                        switch (clickedIdx) {
+                            case 0: this.selectAttack(); break;
+                            case 1: this.selectCatch(); break;
+                            case 2: this.selectSwitch(); break;
+                            case 3: this.selectRun(); break;
+                        }
+                        return;
+                    }
+                    // 点击菜单区域外 = 不响应（不误触发）
+                }
+                // 技能选择阶段：检测点击了哪个技能
+                if (this.phase === 'skillSelect') {
+                    const clickedSkillIdx = this._getSkillItemAt(click.x, click.y);
+                    if (clickedSkillIdx >= 0) {
+                        this.skillIndex = clickedSkillIdx;
+                        this.lastActionTime = now;
+                        this.confirmSkill();
+                        return;
+                    }
+                    // 点击B返回区域
+                    if (click.x >= 560 && click.y >= 430 && click.y <= 445) {
+                        this.phase = 'menu';
+                        return;
+                    }
+                }
             }
         }
 
@@ -903,6 +919,38 @@ class BattleManager {
                 this.phase = 'menu';
             }
         }
+    }
+
+    /** 获取点击位置对应的菜单项索引（-1表示未命中） */
+    _getMenuItemAt(x, y) {
+        const menuX = 340, menuY = 300;
+        for (let i = 0; i < this.menuItems.length; i++) {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const ix = menuX + 15 + col * 130;
+            const iy = menuY + 20 + row * 42;
+            if (x >= ix - 5 && x <= ix + 115 && y >= iy - 12 && y <= iy + 18) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** 获取点击位置对应的技能项索引（-1表示未命中） */
+    _getSkillItemAt(x, y) {
+        if (!this.playerCreature) return -1;
+        const boxX = 20, boxY = 380;
+        const skills = this.playerCreature.skills;
+        for (let i = 0; i < skills.length; i++) {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const sx = boxX + 15 + col * 280;
+            const sy = boxY + 15 + row * 25;
+            if (x >= sx - 5 && x <= sx + 260 && y >= sy - 10 && y <= sy + 12) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /** 结束战斗 */

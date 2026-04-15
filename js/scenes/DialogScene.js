@@ -6,11 +6,12 @@ class DialogScene extends Scene {
         super(game);
         this.id = 'dialog';
         this.titleChoiceActive = false;
+        this._scenePushed = false;
     }
 
     onEnter() {
-        // 从 game 传递 titleChoiceActive 状态
         this.titleChoiceActive = this.game.titleChoiceActive || false;
+        this._scenePushed = false;
     }
 
     update(deltaTime) {
@@ -21,6 +22,10 @@ class DialogScene extends Scene {
         if (g.input.hasPendingClick()) {
             g.input.clearClick();
             if (!g.ui.dialogConfirm()) {
+                if (this._scenePushed) {
+                    this._scenePushed = false;
+                    return;
+                }
                 if (this.titleChoiceActive) {
                     this.titleChoiceActive = false;
                     g.titleChoiceActive = false;
@@ -39,6 +44,10 @@ class DialogScene extends Scene {
 
         if (g.input.isConfirmPressed(now)) {
             if (!g.ui.dialogConfirm()) {
+                if (this._scenePushed) {
+                    this._scenePushed = false;
+                    return;
+                }
                 if (this.titleChoiceActive) {
                     this.titleChoiceActive = false;
                     g.titleChoiceActive = false;
@@ -62,12 +71,15 @@ class DialogScene extends Scene {
         }
     }
 
+    /** 标记对话回调中已push新场景，阻止pop */
+    markScenePushed() {
+        this._scenePushed = true;
+    }
+
     render(ctx) {
         const g = this.game;
-        // 渲染底层场景（探索）
         const exploreScene = g.sceneManager.scenes.get('explore');
         if (exploreScene) exploreScene.render(ctx);
-        // 渲染对话框
         g.ui.renderDialog();
     }
 }
