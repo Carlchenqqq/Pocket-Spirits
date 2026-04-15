@@ -1,188 +1,295 @@
 /**
  * BattleEngine - 战斗引擎（纯逻辑层）
- * 负责战斗流程、伤害计算、AI决策
+ * 负责伤害计算、属性克制、AI决策、回合执行、战斗流程
+ * 不包含任何渲染或输入处理
  */
 class BattleEngine {
     constructor(eventBus) {
         this.eventBus = eventBus;
         this.state = null;
-        
-        // 属性克制表
+
+        // 属性克制表（克制1.5x，被克制0.67x）— 完整版
         this.typeChart = {
-            'fire': { 'grass': 2, 'water': 0.5, 'fire': 0.5 },
-            'water': { 'fire': 2, 'grass': 0.5, 'water': 0.5 },
-            'grass': { 'water': 2, 'fire': 0.5, 'grass': 0.5 },
-            'electric': { 'water': 2, 'grass': 0.5 },
-            'normal': {}
+            fire: { grass: 1.5, water: 0.67, rock: 0.67 },
+            water: { fire: 1.5, grass: 0.67, rock: 1.5 },
+            grass: { water: 1.5, fire: 0.67, rock: 1.5 },
+            electric: { water: 1.5, rock: 0.67 },
+            rock: { fire: 1.5, water: 0.67 },
+            dark: { dragon: 1.5 },
+            dragon: { dragon: 1.5 },
+            normal: {}
         };
     }
 
-    /** 初始化战斗 */
-    initBattle(config) {
+    /** 初始化野生精灵战斗 */
+    initWildBattle(playerCreature, enemyCreature) {
         this.state = {
-            phase: 'menu', // menu, skillSelect, animating, result
+            phase: 'menu',
             turn: 0,
-            playerCreature: config.playerCreature,
-            enemyCreature: config.enemyCreature,
-            battleType: config.battleType || 'wild',
-            trainerNPC: config.trainerNPC || null,
-            trainerParty: config.trainerParty || [],
-            log: [],
-            result: null
+            battleType: 'wild',
+            playerCreature,
+            enemyCreature,
+            trainerNPC: null,
+            trainerParty: [],
+            result: null,
+            log: []
         };
+        playerCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
+        enemyCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
+        this._addLog(`野生的${enemyCreature.name}出现了！`);
         this.eventBus.emit(GameEvents.BATTLE_START, this.state);
         return this.state;
     }
 
-    /** 玩家选择技能 */
-    selectSkill(skillIndex) {
-        if (this.state.phase !== 'skillSelect') return null;
-        return this._executeTurn(skillIndex);
-    }
-
-    /** 执行回合 */
-    _executeTurn(playerSkillIndex) {
-        const player = this.state.playerCreature;
-        const enemy = this.state.enemyCreature;
-        const playerSkill = player.skills[playerSkillIndex];
-        
-        // 计算行动顺序（速度决定）
-        const playerFirst = player.speed >= enemy.speed;
-        
-        const actions = [];
-        
-        if (playerFirst) {
-            actions.push(this._createAttackAction(player, enemy, playerSkill, 'player'));
-            if (enemy.currentHP > 0) {
-                const enemySkill = this._aiSelectSkill(enemy);
-                actions.push(this._createAttackAction(enemy, player, enemySkill, 'enemy'));
-            }
-        } else {
-            const enemySkill = this._aiSelectSkill(enemy);
-            actions.push(this._createAttackAction(enemy, player, enemySkill, 'enemy'));
-            if (player.currentHP > 0) {
-                actions.push(this._createAttackAction(player, enemy, playerSkill, 'player'));
-            }
-        }
-        
-        this.state.turn++;
-        this.state.phase = 'animating';
-        
-        return actions;
-    }
-
-    /** 创建攻击动作 */
-    _createAttackAction(attacker, defender, skill, source) {
-        const damage = this._calcDamage(attacker, defender, skill);
-        return {
-            type: 'attack',
-            attacker,
-            defender,
-            skill,
-            source,
-            damage,
-            effective: this._getTypeMultiplier(skill.type, defender.type)
+    /** 初始化训练师战斗 */
+    initTrainerBattle(playerCreature, enemyCreature, trainerNPC, trainerParty) {
+        this.state = {
+            phase: 'menu',
+            turn: 0,
+            battleType: 'trainer',
+            playerCreature,
+            enemyCreature,
+            trainerNPC,
+            trainerParty: trainerParty ? [...trainerParty] : [],
+            result: null,
+            log: []
         };
+        playerCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
+        enemyCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
+        this._addLog(`训练师${trainerNPC.name}发起了挑战！`);
+        this.eventBus.emit(GameEvents.BATTLE_START, this.state);
+        return this.state;
     }
 
-    /** 计算伤害 */
-    _calcDamage(attacker, defender, skill) {
-        const baseDamage = skill.power || 40;
-        const attack = skill.category === 'special' ? attacker.spAttack : attacker.attack;
-        const defense = skill.category === 'special' ? defender.spDefense : defender.defense;
-        
-        const typeMultiplier = this._getTypeMultiplier(skill.type, defender.type);
+    // ─── 属性克制系统 ───
+
+    /** 获取属性克制倍率 */
+    getTypeMultiplier(attackType, defenderType) {
+        if (!attackType || !defenderType) return 1;
+        const chart = this.typeChart[attackType];
+        if (!chart) return 1;
+        return chart[defenderType] || 1;
+    }
+
+    // ─── 伤害计算 ───
+
+    /**
+     * 计算技能伤害
+     * 公式：floor(攻修正 * 技能威力 / 防修正) * 属性克制 * 随机因子(0.85~1.0)
+     */
+    calcDamage(attacker, skill, defender) {
+        if (skill.power === 0) return 0;
+
+        const atkStat = attacker.stats.attack * (1 + attacker.statModifiers.attack * 0.25);
+        const defStat = defender.stats.defense * (1 + defender.statModifiers.defense * 0.25);
+        const typeMult = this.getTypeMultiplier(skill.type, defender.type);
         const random = 0.85 + Math.random() * 0.15;
-        
-        const damage = Math.floor(
-            ((2 * attacker.level / 5 + 2) * baseDamage * attack / defense / 50 + 2) 
-            * typeMultiplier * random
-        );
-        
+
+        const damage = Math.floor((atkStat * skill.power / defStat) * typeMult * random);
         return Math.max(1, damage);
     }
 
-    /** 获取属性克制倍率 */
-    _getTypeMultiplier(attackType, defenseType) {
-        if (!attackType || !defenseType) return 1;
-        const chart = this.typeChart[attackType];
-        if (!chart) return 1;
-        return chart[defenseType] || 1;
-    }
+    // ─── 技能效果 ───
 
-    /** AI选择技能 */
-    _aiSelectSkill(creature) {
-        const skills = creature.skills.filter(s => s && s.power > 0);
-        if (skills.length === 0) return creature.skills[0];
-        // 简单AI：随机选择，偏好高威力技能
-        const weights = skills.map(s => s.power);
-        const total = weights.reduce((a, b) => a + b, 0);
-        let rand = Math.random() * total;
-        for (let i = 0; i < skills.length; i++) {
-            rand -= weights[i];
-            if (rand <= 0) return skills[i];
+    /**
+     * 应用技能的附加效果（非伤害类）
+     * 返回效果描述文本，null表示无附加效果
+     */
+    applySkillEffect(skill, user, target) {
+        switch (skill.name) {
+            case '叫声':
+                target.statModifiers.attack = Math.max(-6, target.statModifiers.attack - 1);
+                return `${target.name}的攻击力降低了！`;
+            case '变硬':
+                user.statModifiers.defense = Math.min(6, user.statModifiers.defense + 1);
+                return `${user.name}的防御力提升了！`;
+            case '龙之舞':
+                user.statModifiers.attack = Math.min(6, user.statModifiers.attack + 1);
+                user.statModifiers.speed = Math.min(6, user.statModifiers.speed + 1);
+                return `${user.name}的攻击和速度提升了！`;
+            default:
+                return null;
         }
-        return skills[0];
     }
 
-    /** 应用伤害 */
+    // ─── AI 决策 ───
+
+    /**
+     * AI 选择使用哪个技能
+     * 策略：60%概率选择属性克制的有威力技能，否则随机选有威力的
+     */
+    aiSelectSkill(creature, targetType) {
+        const available = creature.skills.filter(s => s.currentPP > 0);
+        if (available.length === 0) return null;
+
+        // 优先选择属性克制的技能
+        const effectiveSkills = available.filter(s => {
+            const mult = this.getTypeMultiplier(s.type, targetType);
+            return mult > 1 && s.power > 0;
+        });
+
+        if (effectiveSkills.length > 0 && Math.random() < 0.6) {
+            return effectiveSkills[Math.floor(Math.random() * effectiveSkills.length)];
+        }
+
+        // 随机选择有威力的技能
+        const powerSkills = available.filter(s => s.power > 0);
+        if (powerSkills.length > 0) {
+            return powerSkills[Math.floor(Math.random() * powerSkills.length)];
+        }
+
+        return available[Math.floor(Math.random() * available.length)];
+    }
+
+    // ─── 回合执行 ───
+
+    /**
+     * 判断先后手（速度优先）
+     * @returns {boolean} true=玩家先手
+     */
+    determineTurnOrder() {
+        const pSpd = this.state.playerCreature.stats.speed * (1 + this.state.playerCreature.statModifiers.speed * 0.25);
+        const eSpd = this.state.enemyCreature.stats.speed * (1 + this.state.enemyCreature.statModifiers.speed * 0.25);
+        return pSpd >= eSpd;
+    }
+
+    /**
+     * 应用伤害到目标
+     * @returns {boolean} true=目标HP归零（倒下）
+     */
     applyDamage(target, damage) {
         target.currentHP = Math.max(0, target.currentHP - damage);
         return target.currentHP <= 0;
     }
 
-    /** 检查战斗结束 */
+    // ─── 捕捉系统 ───
+
+    /**
+     * 计算捕捉成功率并执行判定
+     * @param {number} ballRate - 精灵球的基础捕捉率
+     * @param {object} itemData - 精灵球物品数据（含 catchRate）
+     * @returns {boolean} true=捕捉成功
+     */
+    tryCatch(ballRate, itemData) {
+        if (this.state.battleType !== 'wild') return false;
+
+        const enemy = this.state.enemyCreature;
+        const hpRatio = enemy.currentHP / enemy.maxHP;
+        const rarityBonus = enemy.rarity === 'rare' ? 0.7 :
+                            enemy.rarity === 'legendary' ? 0.3 : 1;
+        const catchChance = (itemData || {}).catchRate || ballRate;
+        const finalRate = catchChance * (1 - hpRatio * 0.5) * rarityBonus;
+
+        return Math.random() < finalRate;
+    }
+
+    // ─── 逃跑系统 ───
+
+    /**
+     * 计算逃跑成功率并执行判定
+     * @returns {boolean} true=逃跑成功
+     */
+    tryRun() {
+        if (this.state.battleType === 'trainer') return false;
+
+        const pSpd = this.state.playerCreature.stats.speed;
+        const eSpd = this.state.enemyCreature.stats.speed;
+        const runChance = Math.min(0.9, pSpd / (pSpd + eSpd) + 0.3);
+
+        return Math.random() < runChance;
+    }
+
+    // ─── 战斗结束检测 ───
+
+    /**
+     * 检查战斗是否结束
+     * @returns {string|null} 'win' | 'lose' | null
+     */
     checkBattleEnd() {
-        if (this.state.playerCreature.currentHP <= 0) {
-            this.state.result = 'lose';
-            this.state.phase = 'result';
-            this.eventBus.emit(GameEvents.BATTLE_END, { result: 'lose' });
-            return 'lose';
-        }
+        if (this.state.result) return this.state.result;
+
         if (this.state.enemyCreature.currentHP <= 0) {
+            // 训练师战斗：检查后备精灵
             if (this.state.battleType === 'trainer' && this.state.trainerParty.length > 0) {
-                // 训练师还有后备精灵
-                const next = this.state.trainerParty.shift();
-                this.state.enemyCreature = next;
-                return 'next';
+                return 'next_creature';
             }
             this.state.result = 'win';
             this.state.phase = 'result';
             this.eventBus.emit(GameEvents.BATTLE_END, { result: 'win' });
             return 'win';
         }
+
+        if (this.state.playerCreature.currentHP <= 0) {
+            this.state.result = 'lose';
+            this.state.phase = 'result';
+            this.eventBus.emit(GameEvents.BATTLE_END, { result: 'lose' });
+            return 'lose';
+        }
+
         return null;
     }
 
-    /** 尝试捕捉 */
-    tryCatch(ballRate = 1) {
+    /** 训练师派出下一只精灵 */
+    sendNextTrainerCreature() {
+        if (!this.state.trainerParty || this.state.trainerParty.length === 0) return null;
+        const next = this.state.trainerParty.find(c => c.currentHP > 0);
+        if (next) {
+            next.statModifiers = { attack: 0, defense: 0, speed: 0 };
+            this.state.enemyCreature = next;
+            this._addLog(`训练师派出了${next.name}！`);
+            return next;
+        }
+        return null;
+    }
+
+    /** 战斗胜利奖励计算 */
+    calcWinRewards() {
         const enemy = this.state.enemyCreature;
-        const hpRatio = enemy.currentHP / enemy.maxHP;
-        const catchRate = (1 - hpRatio * 0.5) * ballRate * (enemy.catchRate || 150);
-        const roll = Math.random() * 255;
-        return roll < catchRate;
+        const expGain = Math.floor(enemy.level * 15 + 20);
+        const goldGain = Math.floor(enemy.level * 10 + 10);
+
+        let trainerBonus = 0;
+        if (this.state.battleType === 'trainer' && this.state.trainerNPC) {
+            trainerBonus = this.state.trainerNPC.reward || 0;
+        }
+
+        return { expGain, goldGain: goldGain + trainerBonus };
     }
 
-    /** 尝试逃跑 */
-    tryRun() {
-        if (this.state.battleType === 'trainer') return false;
-        return Math.random() > 0.3;
+    // ─── 日志管理 ───
+
+    /** 添加战斗日志（最多保留5条） */
+    addLog(text) {
+        this.state.log.push(text);
+        if (this.state.log.length > 5) this.state.log.shift();
     }
 
-    /** 获取当前状态 */
-    getState() {
-        return this.state;
+    getLogs() {
+        return this.state.log || [];
     }
 
-    /** 设置阶段 */
-    setPhase(phase) {
-        this.state.phase = phase;
-    }
+    // ─── 阶段控制 ───
+
+    getPhase() { return this.state ? this.state.phase : 'idle'; }
+    setPhase(phase) { if (this.state) this.state.phase = phase; }
+    getResult() { return this.state ? this.state.result : null; }
+    setResult(result) { if (this.state) this.state.result = result; }
+
+    /** 获取当前状态的只读副本 */
+    getState() { return this.state; }
 
     /** 结束战斗 */
     endBattle() {
-        const result = this.state.result;
+        const result = this.state ? this.state.result : null;
         this.state = null;
         return result;
+    }
+
+    // ─── 内部方法 ───
+    _addLog(text) {
+        if (this.state) {
+            this.state.log.push(text);
+            if (this.state.log.length > 5) this.state.log.shift();
+        }
     }
 }

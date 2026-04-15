@@ -1,31 +1,48 @@
 /**
- * DialogEngine - 对话引擎
- * 统一管理对话流程、选项、回调
+ * DialogEngine - 对话引擎（纯逻辑层）
+ * 统一管理对话流程、打字机效果、分页系统、选项回调
+ * 不包含任何渲染或输入
  */
 class DialogEngine {
     constructor(eventBus) {
         this.eventBus = eventBus;
-        this.state = {
+        this.state = this._createEmptyState();
+    }
+
+    /** 创建空状态 */
+    _createEmptyState() {
+        return {
             active: false,
             speaker: null,
             pages: [],
             currentPage: 0,
             displayedText: '',
             charIndex: 0,
-            choices: null,
+            choices: null,       // string[] | null
             selectedChoice: 0,
             callback: null,
-            speed: 30, // ms per char
-            lastUpdate: 0
+            speed: 30,           // ms/char
+            lastUpdate: 0,
+            // 额外元数据（渲染用）
+            avatarId: null,      // 头像ID
+            boxStyle: 'default'  // 'default' | 'narrator' | 'system'
         };
     }
 
-    /** 开始对话 */
+    // ════════════════════════════════════
+    //   启动对话
+    // ════════════════════════════════════
+
+    /**
+     * 开始一段对话
+     * @param {object} config - { speaker, text, choices, callback, speed, avatarId, boxStyle }
+     */
     start(config) {
+        const text = config.text || '';
         this.state = {
             active: true,
             speaker: config.speaker || null,
-            pages: Array.isArray(config.text) ? config.text : [config.text],
+            pages: Array.isArray(text) ? text : [text],
             currentPage: 0,
             displayedText: '',
             charIndex: 0,
@@ -33,61 +50,81 @@ class DialogEngine {
             selectedChoice: 0,
             callback: config.callback || null,
             speed: config.speed || 30,
-            lastUpdate: performance.now()
+            lastUpdate: performance.now(),
+            avatarId: config.avatarId || null,
+            boxStyle: config.boxStyle || 'default'
         };
         this.eventBus.emit(GameEvents.DIALOG_START, this.state);
         return this.state;
     }
 
-    /** 更新打字机效果 */
+    // ════════════════════════════════════
+    //   打字机更新
+    // ════════════════════════════════════
+
+    /**
+     * 更新打字机动画
+     * @param {number} timestamp - 当前时间戳（performance.now()）
+     */
     update(timestamp) {
         if (!this.state.active) return;
-        if (this.state.charIndex >= this._getCurrentPage().length) return;
-        
+        if (this._isPageComplete()) return;
+
         if (timestamp - this.state.lastUpdate >= this.state.speed) {
             this.state.charIndex++;
-            this.state.displayedText = this._getCurrentPage().substring(0, this.state.charIndex);
+            this.state.displayedText = this._getCurrentText().substring(0, this.state.charIndex);
             this.state.lastUpdate = timestamp;
         }
     }
 
-    /** 获取当前页文本 */
-    _getCurrentPage() {
+    /** 立即完成当前页打字 */
+    skipTyping() {
+        if (this._isPageComplete()) return false;
+        const text = this._getCurrentText();
+        this.state.charIndex = text.length;
+        this.state.displayedText = text;
+        return true; // 表示确实执行了跳过
+    }
+
+    // ════════════════════════════════════
+    //   页面导航
+    // ════════════════════════════════════
+
+    _getCurrentText() {
         return this.state.pages[this.state.currentPage] || '';
     }
 
-    /** 是否当前页显示完毕 */
-    isPageComplete() {
-        return this.state.charIndex >= this._getCurrentPage().length;
+    _isPageComplete() {
+        return this.state.charIndex >= this._getCurrentText().length;
     }
 
-    /** 是否有更多页 */
     hasMorePages() {
         return this.state.currentPage < this.state.pages.length - 1;
     }
 
-    /** 是否有选项 */
     hasChoices() {
-        return this.state.choices !== null && this.isPageComplete() && !this.hasMorePages();
+        return this.state.choices !== null &&
+               this.state.choices.length > 0 &&
+               this._isPageComplete() &&
+               !this.hasMorePages();
     }
 
-    /** 下一页/完成 */
+    /**
+     * 下一步操作
+     * @returns {string} 'typing'|'choices'|'next'|'end'
+     */
     next() {
-        if (!this.state.active) return;
-        
-        // 如果打字未完成，立即显示全部
-        if (!this.isPageComplete()) {
-            this.state.charIndex = this._getCurrentPage().length;
-            this.state.displayedText = this._getCurrentPage();
+        if (!this.state.active) return 'end';
+
+        if (!this._isPageComplete()) {
+            this.skipTyping();
             return 'typing';
         }
-        
-        // 如果有选项，不自动继续
+
         if (this.hasChoices()) {
             return 'choices';
         }
-        
-        // 还有更多页
+
         if (this.hasMorePages()) {
             this.state.currentPage++;
             this.state.charIndex = 0;
@@ -95,45 +132,81 @@ class DialogEngine {
             this.eventBus.emit(GameEvents.DIALOG_NEXT, this.state);
             return 'next';
         }
-        
-        // 对话结束
+
         this.end();
         return 'end';
     }
 
-    /** 选择选项 */
+    // ════════════════════════════════════
+    //   选项系统
+    // ════════════════════════════════════
+
+    getChoices() { return this.state.choices; }
+    getSelectedChoiceIndex() { return this.state.selectedChoice; }
+
     selectChoice(index) {
         if (!this.hasChoices()) return;
-        this.state.selectedChoice = index;
+        const count = this.state.choices.length;
+        this.state.selectedChoice = Math.max(0, Math.min(count - 1, index));
     }
 
-    /** 确认选择 */
-    confirmChoice() {
+    moveChoiceUp() {
         if (!this.hasChoices()) return;
-        const choice = this.state.choices[this.state.selectedChoice];
-        const callback = this.state.callback;
-        this.end();
-        if (callback) {
-            callback(this.state.selectedChoice, choice);
-        }
-        return this.state.selectedChoice;
+        const idx = this.state.selectedChoice;
+        this.selectChoice(idx > 0 ? idx - 1 : this.state.choices.length - 1);
     }
 
-    /** 结束对话 */
+    moveChoiceDown() {
+        if (!this.hasChoices()) return;
+        const idx = this.state.selectedChoice;
+        this.selectChoice(idx < this.state.choices.length - 1 ? idx + 1 : 0);
+    }
+
+    /**
+     * 确认当前选项并结束对话
+     * @returns {number} 选中的选项索引
+     */
+    confirmChoice() {
+        if (!this.hasChoices()) return -1;
+        const choice = this.state.choices[this.state.selectedChoice];
+        const cb = this.state.callback;
+        const selectedIdx = this.state.selectedChoice;
+        this.end();
+        if (cb) cb(selectedIdx, choice);
+        return selectedIdx;
+    }
+
+    // ════════════════════════════════════
+    //   结束
+    // ════════════════════════════════════
+
     end() {
-        const callback = this.state.callback;
+        const cb = this.state.callback;
         this.state.active = false;
         this.eventBus.emit(GameEvents.DIALOG_END);
-        return callback;
+        return cb;
     }
 
-    /** 获取状态 */
-    getState() {
-        return this.state;
-    }
+    isActive() { return this.state.active; }
 
-    /** 是否激活 */
-    isActive() {
-        return this.state.active;
+    getState() { return this.state; }
+
+    // ─── 快捷方法 ───
+
+    /**
+     * 快速显示一行文本后关闭（用于系统提示等）
+     */
+    showQuickMessage(text, callback = null, duration = 1500) {
+        this.start({
+            text,
+            speed: 10, // 打字更快
+            boxStyle: 'system',
+            callback
+        });
+        // 自动快速打完 + 延时关闭
+        setTimeout(() => {
+            this.skipTyping();
+            setTimeout(() => this.end(), Math.max(100, duration));
+        }, 200);
     }
 }
