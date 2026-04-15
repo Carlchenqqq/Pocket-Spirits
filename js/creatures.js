@@ -22,6 +22,8 @@ class CreaturesManager {
         this.starterChosen = false;
         // 已击败的训练师
         this.defeatedTrainers = [];
+        // V1: 道馆徽章收集系统
+        this.badges = [];          // 已获得的徽章 ID 数组
         // 图鉴数据
         this.creatureDex = {};  // { creatureId: { encountered: true, caught: false, name, type, rarity } }
         this.npcDex = {};       // { npcId: { encountered: true, name, type } }
@@ -827,6 +829,175 @@ class CreaturesManager {
             },
 
         };
+    }
+
+    // ════════════════════════════════════
+    //   V1: 道馆徽章系统
+    // ════════════════════════════════════
+
+    /**
+     * 道馆定义 - 8个道馆对应8枚徽章
+     * 后续可扩展为从 JSON 加载
+     */
+    static get GYM_DEFINITIONS() {
+        return [
+            { id: 'stone_badge', name: '岩石徽章', gymLeader: '岩壁', type: 'rock', rewardGold: 500, rewardItem: null, requiredLevel: 5 },
+            { id: 'water_badge', name: '激流徽章', gymLeader: '海潮', type: 'water', rewardGold: 700, rewardItem: null, requiredLevel: 10 },
+            { id: 'thunder_badge', name: '雷电徽章', gymLeader: '闪电', type: 'electric', rewardGold: 900, rewardItem: null, requiredLevel: 15 },
+            { id: 'poison_badge', name: '毒雾徽章', gymLeader: '暗影', type: 'poison', rewardGold: 1100, rewardItem: null, requiredLevel: 20 },
+            { id: 'psychic_badge', name: '心灵徽章', gymLeader: '幻心', type: 'psychic', rewardGold: 1400, rewardItem: null, requiredLevel: 25 },
+            { id: 'flame_badge', name: '烈焰徽章', gymLeader: '炎皇', type: 'fire', rewardGold: 1700, rewardItem: null, requiredLevel: 30 },
+            { id: 'ice_badge', name: '冰晶徽章', gymLeader: '霜月', type: 'ice', rewardGold: 2000, rewardItem: null, requiredLevel: 35 },
+            { id: 'champion', name: '冠军证明', gymLeader: '冠军', type: 'normal', rewardGold: 5000, rewardItem: null, requiredLevel: 40 }
+        ];
+    }
+
+    /** 获取已收集的徽章数量 */
+    getBadgeCount() {
+        return this.badges.length;
+    }
+
+    /** 检查是否拥有某枚徽章 */
+    hasBadge(badgeId) {
+        return this.badges.includes(badgeId);
+    }
+
+    /** 获取所有已获得的徽章信息 */
+    getBadges() {
+        const allDefs = CreaturesManager.GYM_DEFINITIONS;
+        return this.badges.map(id => allDefs.find(b => b.id === id)).filter(Boolean);
+    }
+
+    /** 获得徽章（战胜道馆训练师后调用） */
+    awardBadge(badgeId) {
+        if (this.hasBadge(badgeId)) return false; // 已获得
+
+        const allDefs = CreaturesManager.GYM_DEFINITIONS;
+        const badgeDef = allDefs.find(b => b.id === badgeId);
+        if (!badgeDef) return false;
+
+        this.badges.push(badgeId);
+
+        // 发放奖励金币
+        this.gold += badgeDef.rewardGold;
+
+        console.log(`🏆 获得徽章: ${badgeDef.name}！+${badgeDef.rewardGold}G`);
+        return true;
+    }
+
+    /** 计算徽章加成（影响精灵服从度/特殊技能解锁等） */
+    getBadgeBonus() {
+        const count = this.badges.length;
+        // 徽章加成：每枚徽章 +5% 经验获取率，+2% 金币获取率
+        return {
+            expMultiplier: 1 + count * 0.05,
+            goldMultiplier: 1 + count * 0.02,
+            maxLevelUnlock: count * 5 + 10, // 解锁的最大等级上限
+            obedienceLevel: count * 3 + 5    // 可控制的最高等级精灵
+        };
+    }
+
+    /** 渲染徽章收集进度条（用于 UI 展示） */
+    renderBadgeProgress(ctx, x, y, width = 200) {
+        const totalBadges = CreaturesManager.GYM_DEFINITIONS.length;
+        const collected = this.badges.length;
+        const progress = collected / totalBadges;
+
+        // 背景
+        ctx.fillStyle = 'rgba(30, 30, 50, 0.85)';
+        ctx.fillRect(x, y, width, 36);
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, width, 36);
+
+        // 标题
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 11px monospace';
+        ctx.fillText(`🏆 徽章 ${collected}/${totalBadges}`, x + 8, y + 14);
+
+        // 进度条
+        const barX = x + 6, barY = y + 20, barW = width - 12, barH = 10;
+        ctx.fillStyle = 'rgba(50, 50, 70, 0.7)';
+        ctx.fillRect(barX, barY, barW, barH);
+
+        // 已收集段（金色渐变效果）
+        if (progress > 0) {
+            const gradient = ctx.createLinearGradient(barX, barY, barX + barW * progress, barY);
+            gradient.addColorStop(0, '#FFD700');
+            gradient.addColorStop(1, '#FFA000');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(barX, barY, barW * progress, barH);
+        }
+
+        // 小圆点标记已获徽章位置
+        for (let i = 0; i < totalBadges; i++) {
+            const dotX = barX + (barW / totalBadges) * (i + 0.5);
+            const dotY = barY + barH / 2;
+            const hasIt = this.badges.includes(CreaturesManager.GYM_DEFINITIONS[i].id);
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, hasIt ? 4 : 2, 0, Math.PI * 2);
+            ctx.fillStyle = hasIt ? '#FFD700' : 'rgba(100,100,120,0.6)';
+            ctx.fill();
+        }
+    }
+
+    /** 渲染全部徽章展示面板 */
+    renderBadgePanel(ctx, x, y, maxW = 280) {
+        const allDefs = CreaturesManager.GYM_DEFINITIONS;
+        const collectedSet = new Set(this.badges);
+
+        // 面板背景
+        const panelH = 40 + Math.ceil(allDefs.length / 4) * 48;
+        ctx.fillStyle = 'rgba(18, 18, 32, 0.92)';
+        ctx.fillRect(x, y, maxW, panelH);
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, maxW, panelH);
+
+        // 标题
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 13px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('🎖️ 道馆徽章收集', x + maxW / 2, y + 20);
+        ctx.textAlign = 'left';
+
+        // 徽章网格 (4列)
+        const cols = 4;
+        const cellW = maxW / cols;
+        const startY = y + 38;
+
+        allDefs.forEach((badge, i) => {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const cx = x + col * cellW + cellW / 2;
+            const cy = startY + row * 44 + 16;
+            const hasIt = collectedSet.has(badge.id);
+
+            // 徽章图标（圆形）
+            ctx.beginPath();
+            ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+            if (hasIt) {
+                // 已获得：金色发光
+                const grad = ctx.createRadialGradient(cx - 3, cy - 3, 2, cx, cy, 14);
+                grad.addColorStop(0, '#FFF176');
+                grad.addColorStop(1, '#FFB300');
+                ctx.fillStyle = grad;
+            } else {
+                // 未获得：灰色暗淡
+                ctx.fillStyle = 'rgba(60, 60, 75, 0.6)';
+            }
+            ctx.fill();
+            ctx.strokeStyle = hasIt ? '#FFD700' : 'rgba(80,80,95,0.4)';
+            ctx.lineWidth = hasIt ? 1.5 : 0.5;
+            ctx.stroke();
+
+            // 名称
+            ctx.fillStyle = hasIt ? '#FFD700' : '#555';
+            ctx.font = `${hasIt ? 'bold ' : ''}9px monospace`;
+            ctx.textAlign = 'center';
+            ctx.fillText(badge.name.substring(0, 3), cx, cy + 28);
+            ctx.textAlign = 'left';
+        });
     }
 
         /** 渲染精灵像素画 */

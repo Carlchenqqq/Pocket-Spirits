@@ -31,9 +31,7 @@
       "y": 6,
       "type": "shop",
       "name": "商店店员",
-      "dialogs": [
-        "欢迎光临！需要什么道具吗？"
-      ]
+      "dialogs": ["欢迎光临！需要什么道具吗？"]
     },
     {
       "id": "heal_npc",
@@ -41,10 +39,7 @@
       "y": 13,
       "type": "healer",
       "name": "精灵中心护士",
-      "dialogs": [
-        "你的精灵已经恢复健康了！",
-        "随时欢迎回来~"
-      ]
+      "dialogs": ["你的精灵已经恢复健康了！", "随时欢迎回来~"]
     },
     {
       "id": "town2_man",
@@ -52,10 +47,42 @@
       "y": 7,
       "type": "dialog",
       "name": "镇民",
-      "dialogs": [
-        "碧波镇的道馆馆主非常厉害！",
-        "建议先在野外多训练一下。"
-      ]
+      "dialogs": ["碧波镇的道馆馆主非常厉害！", "建议先在野外多训练一下。"]
+    },
+    {
+      "id": "gym_leader_rock",
+      "x": 14,
+      "y": 4,
+      "type": "gym_leader",
+      "name": "道馆馆主·岩铁",
+      "dialogs": ["我是碧波道馆的馆主岩铁！", "我的岩石精灵坚不可摧！", "想挑战我的话，先击败3个训练师吧！"],
+      "creatures": [{"creatureId": 11, "level": 12}, {"creatureId": 5, "level": 10}, {"creatureId": 21, "level": 14}],
+      "defeated": false,
+      "reward": 500,
+      "badgeName": "岩石徽章"
+    },
+    {
+      "id": "rival_town2",
+      "x": 5,
+      "y": 11,
+      "type": "rival",
+      "name": "宿敌·阿雷",
+      "dialogs": ["哈哈！你终于追上来了？", "我已经获得了岩石徽章！", "...开玩笑的，我也刚到。"],
+      "defeatDialogs": ["可恶...这次算你赢了！", "下次绝对不会输给你！"],
+      "creatures": [{"creatureId": 10, "level": 8}, {"creatureId": 22, "level": 9}],
+      "defeated": false,
+      "reward": 200
+    },
+    {
+      "id": "quest_giver_1",
+      "x": 18,
+      "y": 11,
+      "type": "quest_giver",
+      "name": "探险家老王",
+      "questDesc": "帮我在野外洞穴收集3只暗影蝠的数据。",
+      "reward": 300,
+      "questId": "collect_bats",
+      "dialogs": ["我是研究野生精灵的学者...", "你能帮我采集一些数据吗？"]
     }
   ],
   "layers": {

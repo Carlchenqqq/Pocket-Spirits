@@ -203,23 +203,39 @@ class BattleManager {
             return;
         }
 
-        // 伤害计算（委托给 Engine）
-        const damage = this.engine.calcDamage(player, skill, enemy);
-        this.engine.applyDamage(enemy, damage);
+        // V1: 伤害计算现在返回对象 {damage, isCritical, isMissed, typeEffectText}
+        const dmgInfo = this.engine.calcDamage(player, skill, enemy);
 
-        // 属性克制提示
-        const typeMult = this.engine.getTypeMultiplier(skill.type, enemy.type);
-        if (typeMult > 1) this.engine.addLog('效果拔群！');
-        else if (typeMult < 1) this.engine.addLog('效果不太好...');
+        // 未命中处理
+        if (dmgInfo.isMissed) {
+            this.engine.addLog(`但是没有命中！`);
+            this._startAnim(800, () => {
+                this.shakeTarget = null;
+                this._enemyTurn(); // 未命中敌人仍然反击
+            });
+            return;
+        }
+
+        this.engine.applyDamage(enemy, dmgInfo.damage);
+
+        // 暴击提示（V1新增）
+        if (dmgInfo.isCritical) {
+            this.engine.addLog('【暴击】');
+        }
+
+        // 属性克制提示（V1：使用 engine 内部计算的文本）
+        if (dmgInfo.typeEffectText) {
+            this.engine.addLog(dmgInfo.typeEffectText);
+        }
 
         // 吸血恢复
-        if (skill.name === '吸血' && damage > 0) {
-            const healAmount = Math.floor(damage / 2);
+        if (skill.name === '吸血' && dmgInfo.damage > 0) {
+            const healAmount = Math.floor(dmgInfo.damage / 2);
             player.currentHP = Math.min(player.maxHP, player.currentHP + healAmount);
             this.engine.addLog(`${player.name}恢复了${healAmount}HP！`);
         }
 
-        this.engine.addLog(`造成了${damage}点伤害！`);
+        this.engine.addLog(`造成了${dmgInfo.damage}点伤害！`);
 
         this.shakeTarget = 'enemy';
         this._startAnim(600, () => {
@@ -251,19 +267,32 @@ class BattleManager {
             return;
         }
 
-        const damage = this.engine.calcDamage(enemy, skill, player);
-        this.engine.applyDamage(player, damage);
+        // V1: 敌人攻击也使用新的对象返回格式
+        const dmgInfo = this.engine.calcDamage(enemy, skill, player);
 
-        const typeMult = this.engine.getTypeMultiplier(skill.type, player.type);
-        if (typeMult > 1) this.engine.addLog('效果拔群！');
-        else if (typeMult < 1) this.engine.addLog('效果不太好...');
+        // 敌人未命中
+        if (dmgInfo.isMissed) {
+            this.engine.addLog(`${skill.name}没有命中！`);
+            this._startAnim(800, () => {
+                callback();
+            });
+            return;
+        }
 
-        if (skill.name === '吸血' && damage > 0) {
-            const healAmount = Math.floor(damage / 2);
+        this.engine.applyDamage(player, dmgInfo.damage);
+
+        // 属性克制提示
+        if (dmgInfo.typeEffectText) {
+            this.engine.addLog(dmgInfo.typeEffectText);
+        }
+
+        // 吸血恢复
+        if (skill.name === '吸血' && dmgInfo.damage > 0) {
+            const healAmount = Math.floor(dmgInfo.damage / 2);
             enemy.currentHP = Math.min(enemy.maxHP, enemy.currentHP + healAmount);
         }
 
-        this.engine.addLog(`造成了${damage}点伤害！`);
+        this.engine.addLog(`造成了${dmgInfo.damage}点伤害！`);
 
         this.shakeTarget = 'player';
         this._startAnim(600, () => {

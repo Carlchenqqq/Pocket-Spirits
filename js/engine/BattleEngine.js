@@ -1,24 +1,45 @@
 /**
- * BattleEngine - 战斗引擎（纯逻辑层）
- * 负责伤害计算、属性克制、AI决策、回合执行、战斗流程
+ * BattleEngine V1 升级版 - 战斗引擎（纯逻辑层）
+ *
+ * 负责伤害计算、命中判定、暴击系统、属性克制、AI决策、回合执行、战斗流程
  * 不包含任何渲染或输入处理
+ *
+ * V1 升级内容：
+ * - 新增：accuracy 命中判定（读取 skills.json 的 accuracy 字段）
+ * - 新增：暴击系统（约 6.25% 概率，1.5 倍伤害）
+ * - 扩充：完整属性克制表（覆盖 16 种属性）
+ * - 改进：更合理的伤害公式（含等级因子）
  */
+
+// ========== 完整属性克制表 ==========
+// 攻击属性 → 防御属性 = 伤害倍率（2=克制, 0.5=抵抗, 0=免疫, 无键=1正常）
+const FULL_TYPE_CHART = {
+    fire:   { grass: 2, ice: 2, bug: 2, steel: 2, water: 0.5, fire: 0.5, rock: 0.5, dragon: 0.5 },
+    water:  { fire: 2, ground: 2, rock: 2, grass: 0.5, water: 0.5, dragon: 0.5 },
+    grass:  { water: 2, ground: 2, rock: 2, fire: 0.5, grass: 0.5, flying: 0.5, poison: 0.5, bug: 0.5, steel: 0.5, dragon: 0.5 },
+    electric:{ water: 2, flying: 2, grass: 0.5, electric: 0.5, dragon: 0.5, ground: 0 }, // 地面免疫电
+    ice:    { grass: 2, ground: 2, flying: 2, dragon: 2, fire: 0.5, water: 0.5, ice: 0.5, steel: 0.5 },
+    fighting:{ normal: 2, ice: 2, rock: 2, dark: 2, steel: 2, poison: 0.5, flying: 0.5, psychic: 0.5, ghost: 0, bug: 0.5, fairy: 0.5 },
+    poison: { grass: 2, fairy: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0.5 },
+    ground: { fire: 2, electric: 2, poison: 2, rock: 2, steel: 2, grass: 0.5, bug: 0.5, flying: 0 },
+    flying: { grass: 2, fighting: 2, bug: 2, electric: 0.5, rock: 0.5, steel: 0.5 },
+    psychic: { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 },
+    bug:    { grass: 2, psychic: 2, dark: 2, fire: 0.5, fighting: 0.5, poison: 0.5, flying: 0.5, ghost: 0.5, steel: 0.5, fairy: 0.5 },
+    rock:   { fire: 2, ice: 2, flying: 2, bug: 2, fighting: 0.5, ground: 0.5, steel: 0.5 },
+    ghost:  { psychic: 2, ghost: 2, normal: 0, dark: 0.5 },
+    dragon: { dragon: 2, fairy: 0 }, // 妖精龙系免疫
+    dark:   { psychic: 2, ghost: 2, fighting: 0.5, dark: 0.5, fairy: 0.5 },
+    normal: {}, // 普通系无特殊克制
+    fairy:  { fighting: 2, dragon: 2, dark: 2, fire: 0.5, poison: 0.5, steel: 0.5 }
+};
+
 class BattleEngine {
     constructor(eventBus) {
         this.eventBus = eventBus || null;
         this.state = null;
 
-        // 属性克制表（克制1.5x，被克制0.67x）— 完整版
-        this.typeChart = {
-            fire: { grass: 1.5, water: 0.67, rock: 0.67 },
-            water: { fire: 1.5, grass: 0.67, rock: 1.5 },
-            grass: { water: 1.5, fire: 0.67, rock: 1.5 },
-            electric: { water: 1.5, rock: 0.67 },
-            rock: { fire: 1.5, water: 0.67 },
-            dark: { dragon: 1.5 },
-            dragon: { dragon: 1.5 },
-            normal: {}
-        };
+        // 使用完整属性克制表
+        this.typeChart = FULL_TYPE_CHART;
     }
 
     /** 初始化野生精灵战斗 */
@@ -32,7 +53,11 @@ class BattleEngine {
             trainerNPC: null,
             trainerParty: [],
             result: null,
-            log: []
+            log: [],
+            // V1 新增字段
+            wasCriticalHit: false,     // 上次攻击是否暴击
+            wasMissed: false,          // 上次攻击是否闪避
+            lastDamageInfo: null       // 上次伤害详细信息
         };
         playerCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
         enemyCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
@@ -52,7 +77,10 @@ class BattleEngine {
             trainerNPC,
             trainerParty: trainerParty ? [...trainerParty] : [],
             result: null,
-            log: []
+            log: [],
+            wasCriticalHit: false,
+            wasMissed: false,
+            lastDamageInfo: null
         };
         playerCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
         enemyCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
@@ -61,35 +89,132 @@ class BattleEngine {
         return this.state;
     }
 
-    // ─── 属性克制系统 ───
-
-    /** 获取属性克制倍率 */
-    getTypeMultiplier(attackType, defenderType) {
-        if (!attackType || !defenderType) return 1;
-        const chart = this.typeChart[attackType];
-        if (!chart) return 1;
-        return chart[defenderType] || 1;
-    }
-
-    // ─── 伤害计算 ───
+    // ════════════════════════════════════
+    //   属性克制系统（V1 完整版）
+    // ════════════════════════════════════
 
     /**
-     * 计算技能伤害
-     * 公式：floor(攻修正 * 技能威力 / 防修正) * 属性克制 * 随机因子(0.85~1.0)
+     * 获取属性克制倍率
+     * @param {string} attackType - 攻击技能的属性
+     * @param {string|Array} defenderType - 防御方的属性（支持单属性或数组）
+     * @returns {number} 伤害倍率
      */
-    calcDamage(attacker, skill, defender) {
-        if (skill.power === 0) return 0;
+    getTypeMultiplier(attackType, defenderType) {
+        if (!attackType || !defenderType) return 1;
 
-        const atkStat = attacker.stats.attack * (1 + attacker.statModifiers.attack * 0.25);
-        const defStat = defender.stats.defense * (1 + defender.statModifiers.defense * 0.25);
-        const typeMult = this.getTypeMultiplier(skill.type, defender.type);
-        const random = 0.85 + Math.random() * 0.15;
+        const types = Array.isArray(defenderType) ? defenderType : [defenderType];
+        let multiplier = 1;
 
-        const damage = Math.floor((atkStat * skill.power / defStat) * typeMult * random);
-        return Math.max(1, damage);
+        for (const defType of types) {
+            const chart = this.typeChart[attackType];
+            if (chart && typeof chart[defType] === 'number') {
+                multiplier *= chart[defType];
+            }
+            if (multiplier === 0) return 0; // 任一属性完全免疫，直接返回
+        }
+
+        return multiplier;
     }
 
-    // ─── 技能效果 ───
+    /** 获取属性克制描述文字 */
+    static getTypeEffectText(multiplier) {
+        if (multiplier >= 4) return '效果拔群！';
+        if (multiplier >= 2) return '效果很好！';
+        if (multiplier > 1 && multiplier < 2) return '比较有效！';
+        if (multiplier === 1) return '';
+        if (multiplier > 0) return '效果不太好...';
+        return '没有效果！';
+    }
+
+    // ════════════════════════════════════
+    //   伤害计算（V1 升级版）
+    // ════════════════════════════════════
+
+    /**
+     * 计算技能伤害 - V1 升级公式
+     *
+     * 公式灵感来自宝可梦：
+     * Damage = ((2*Level/5 + 2) * Power * Atk/Def / 50 + 2) * Modifier
+     * Modifier = Crit(×1.5) × Type(×0/0.25/0.5/1/2/4) × Random(0.85~1.15)
+     *
+     * @param {Object} attacker - 攻击者精灵
+     * @param {Object} skill - 技能数据（需含 power/type/accuracy/category）
+     * @param {Object} defender - 防守者精灵
+     * @returns {{ damage:number, isCritical:boolean, isMissed:boolean, typeEffect:number, typeEffectText:string }}
+     */
+    calcDamage(attacker, skill, defender) {
+        // 零威力技能不造成直接伤害（状态类技能）
+        if (skill.power === 0) return { damage: 0, isCritical: false, isMissed: false, typeEffect: 1, typeEffectText: '' };
+
+        // ===== V1 新增：命中率检查 =====
+        const accuracy = skill.accuracy != null ? skill.accuracy : 100;
+        const randomRoll = Math.random() * 100;
+
+        if (randomRoll > accuracy) {
+            // 未命中！
+            if (this.state) {
+                this.state.wasCriticalHit = false;
+                this.state.wasMissed = true;
+                this.state.lastDamageInfo = { damage: 0, isCritical: false, isMissed: true };
+            }
+            return { damage: 0, isCritical: false, isMissed: true, typeEffect: 1, typeEffectText: '' };
+        }
+
+        // ===== 基础攻防数值 =====
+        const level = attacker.level || attacker.stats?.level || 5;
+        const atkStat = attacker.stats.attack * (1 + attacker.statModifiers.attack * 0.25);
+        const defStat = defender.stats.defense * (1 + defender.statModifiers.defense * 0.25);
+
+        // ===== 核心伤害公式 =====
+        // Base = floor( ((2*Level/5+2) * Power * Atk / Def) / 50 ) + 2
+        let baseDamage = Math.floor(
+            (((2 * level / 5 + 2) * skill.power * atkStat) / (defStat * 50)) + 2
+        );
+        baseDamage = Math.max(1, baseDamage); // 最少1点伤害
+
+        // ===== V1 新增：暴击判定（约6.25%，即经典1/16）=====
+        const CRIT_CHANCE = 0.0625;
+        const isCrit = Math.random() < CRIT_CHANCE;
+        const critMult = isCrit ? 1.5 : 1;
+
+        // ===== 属性克制 =====
+        const typeMult = this.getTypeMultiplier(skill.type, defender.type);
+        const effectText = BattleEngine.getTypeEffectText(typeMult);
+
+        // ===== 随机浮动（±15%）=====
+        const randomFactor = 0.85 + Math.random() * 0.3; // 0.85 ~ 1.15
+
+        // ===== 最终伤害 =====
+        let finalDamage = Math.floor(baseDamage * critMult * typeMult * randomFactor);
+        finalDamage = Math.max(0, finalDamage);
+
+        // 缓存结果到 state（供渲染使用）
+        if (this.state) {
+            this.state.wasCriticalHit = isCrit;
+            this.state.wasMissed = false;
+            this.state.lastDamageInfo = {
+                damage: finalDamage,
+                isCritical: isCrit,
+                isMissed: false,
+                baseDamage: baseDamage,
+                typeEffect: typeMult,
+                typeEffectText: effectText,
+                moveType: skill.type
+            };
+        }
+
+        return {
+            damage: finalDamage,
+            isCritical: isCrit,
+            isMissed: false,
+            typeEffect: typeMult,
+            typeEffectText: effectText
+        };
+    }
+
+    // ════════════════════════════════════
+    //   技能效果（保持不变，已完善）
+    // ════════════════════════════════════
 
     /**
      * 应用技能的附加效果（非伤害类）
@@ -112,7 +237,9 @@ class BattleEngine {
         }
     }
 
-    // ─── AI 决策 ───
+    // ════════════════════════════════════
+    //   AI 决策（保持不变）
+    // ════════════════════════════════════
 
     /**
      * AI 选择使用哪个技能
@@ -141,75 +268,77 @@ class BattleEngine {
         return available[Math.floor(Math.random() * available.length)];
     }
 
-    // ─── 回合执行 ───
+    // ════════════════════════════════════
+    //   回合执行（保持不变）
+    // ════════════════════════════════════
 
-    /**
-     * 判断先后手（速度优先）
-     * @returns {boolean} true=玩家先手
-     */
+    /** 判断先后手（速度优先） */
     determineTurnOrder() {
         const pSpd = this.state.playerCreature.stats.speed * (1 + this.state.playerCreature.statModifiers.speed * 0.25);
         const eSpd = this.state.enemyCreature.stats.speed * (1 + this.state.enemyCreature.statModifiers.speed * 0.25);
         return pSpd >= eSpd;
     }
 
-    /**
-     * 应用伤害到目标
-     * @returns {boolean} true=目标HP归零（倒下）
-     */
+    /** 应用伤害到目标 */
     applyDamage(target, damage) {
         target.currentHP = Math.max(0, target.currentHP - damage);
         return target.currentHP <= 0;
     }
 
-    // ─── 捕捉系统 ───
+    // ════════════════════════════════════
+    //   捕捉系统（V1 微调）
+    // ════════════════════════════════════
 
     /**
-     * 计算捕捉成功率并执行判定
-     * @param {number} ballRate - 精灵球的基础捕捉率
-     * @param {object} itemData - 精灵球物品数据（含 catchRate）
-     * @returns {boolean} true=捕捉成功
+     * 计算捕捉成功率并执行判定 - V1 升级版
+     * 公式：catchChance = ballRate × (3*MaxHP-2*CurHP)/(3*MaxHP) × statusMod
      */
     tryCatch(ballRate, itemData) {
         if (this.state.battleType !== 'wild') return false;
 
         const enemy = this.state.enemyCreature;
-        const hpRatio = enemy.currentHP / enemy.maxHP;
+        const maxHp = enemy.maxHP || enemy.stats?.maxHP || 100;
+        const currentHp = enemy.currentHP;
+        const hpRatio = (3 * maxHp - 2 * currentHp) / (3 * maxHp); // HP越低越容易抓
+
+        // 稀有度修正
         const rarityBonus = enemy.rarity === 'rare' ? 0.7 :
                             enemy.rarity === 'legendary' ? 0.3 : 1;
-        const catchChance = (itemData || {}).catchRate || ballRate;
-        const finalRate = catchChance * (1 - hpRatio * 0.5) * rarityBonus;
 
-        return Math.random() < finalRate;
+        // 状态修正
+        let statusMod = 1;
+        if (enemy.status === 'sleep' || enemy.status === 'freeze') statusMod = 2.5;
+        else if (enemy.status === 'paralyze' || enemy.status === 'poison' || enemy.status === 'burn') statusMod = 1.5;
+
+        const catchChance = (itemData?.catchRate || ballRate) * hpRatio * rarityBonus * statusMod;
+
+        return Math.random() < Math.min(0.95, catchChance);
     }
 
-    // ─── 逃跑系统 ───
+    // ════════════════════════════════════
+    //   逃跑系统（保持不变）
+    // ════════════════════════════════════
 
-    /**
-     * 计算逃跑成功率并执行判定
-     * @returns {boolean} true=逃跑成功
-     */
     tryRun() {
         if (this.state.battleType === 'trainer') return false;
 
         const pSpd = this.state.playerCreature.stats.speed;
         const eSpd = this.state.enemyCreature.stats.speed;
-        const runChance = Math.min(0.9, pSpd / (pSpd + eSpd) + 0.45);
+        // V1微调：每回合增加逃跑概率上限
+        const turnBonus = Math.min(0.15, this.state.turn * 0.03);
+        const runChance = Math.min(0.95, pSpd / (pSpd + eSpd) + 0.45 + turnBonus);
 
         return Math.random() < runChance;
     }
 
-    // ─── 战斗结束检测 ───
+    // ════════════════════════════════════
+    //   战斗结束检测（保持不变）
+    // ════════════════════════════════════
 
-    /**
-     * 检查战斗是否结束
-     * @returns {string|null} 'win' | 'lose' | null
-     */
     checkBattleEnd() {
         if (this.state.result) return this.state.result;
 
         if (this.state.enemyCreature.currentHP <= 0) {
-            // 训练师战斗：检查后备精灵
             if (this.state.battleType === 'trainer' && this.state.trainerParty.length > 0) {
                 return 'next_creature';
             }
@@ -229,7 +358,6 @@ class BattleEngine {
         return null;
     }
 
-    /** 训练师派出下一只精灵 */
     sendNextTrainerCreature() {
         if (!this.state.trainerParty || this.state.trainerParty.length === 0) return null;
         const next = this.state.trainerParty.find(c => c.currentHP > 0);
@@ -256,29 +384,27 @@ class BattleEngine {
         return { expGain, goldGain: goldGain + trainerBonus };
     }
 
-    // ─── 日志管理 ───
+    // ════════════════════════════════════
+    //   日志管理
+    // ════════════════════════════════════
 
-    /** 添加战斗日志（最多保留5条） */
     addLog(text) {
         this.state.log.push(text);
-        if (this.state.log.length > 5) this.state.log.shift();
+        if (this.state.log.length > 8) this.state.log.shift(); // V1: 日志容量从5扩到8
     }
 
-    getLogs() {
-        return this.state.log || [];
-    }
+    getLogs() { return this.state.log || []; }
 
-    // ─── 阶段控制 ───
+    // ════════════════════════════════════
+    //   阶段控制
+    // ════════════════════════════════════
 
     getPhase() { return this.state ? this.state.phase : 'idle'; }
     setPhase(phase) { if (this.state) this.state.phase = phase; }
     getResult() { return this.state ? this.state.result : null; }
     setResult(result) { if (this.state) this.state.result = result; }
-
-    /** 获取当前状态的只读副本 */
     getState() { return this.state; }
 
-    /** 结束战斗 */
     endBattle() {
         const result = this.state ? this.state.result : null;
         this.state = null;
@@ -289,7 +415,7 @@ class BattleEngine {
     _addLog(text) {
         if (this.state) {
             this.state.log.push(text);
-            if (this.state.log.length > 5) this.state.log.shift();
+            if (this.state.log.length > 8) this.state.log.shift();
         }
     }
 }

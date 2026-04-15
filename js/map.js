@@ -32,7 +32,7 @@ class MapManager {
             fence: '#8B7355',       // 栅栏
             sign: '#D2B48C',        // 标志牌
             flower1: '#ff6b9d',     // 花1
-            flower2: '#ffd93d',     // 花2
+            flower2: '#ffd93d'      // 花2
         };
     }
 
@@ -48,7 +48,7 @@ class MapManager {
      * 初始化地图 - 异步加载 JSON，失败则回退到代码生成
      */
     async _initMaps() {
-        const mapIds = ['town1', 'wild', 'town2'];
+        const mapIds = ['town1', 'wild', 'town2', 'cave'];
         
         for (const id of mapIds) {
             try {
@@ -114,6 +114,8 @@ class MapManager {
                 return this._generateWild();
             case 'town2':
                 return this._generateTown2();
+            case 'cave':
+                return this._generateCave();
             default:
                 console.error(`Unknown map ID: ${mapId}`);
                 return this._generateTown1();
@@ -326,34 +328,40 @@ class MapManager {
             npcs: [
                 { id: 'trainer1', x: 5, y: 10, type: 'trainer', name: '训练师小明',
                   dialogs: ['来对战吧！'],
-                  creatures: [
-                      { creatureId: 4, level: 3 },
-                      { creatureId: 6, level: 3 }
-                  ],
-                  defeated: false,
-                  reward: 100
+                  creatures: [{ creatureId: 4, level: 3 }, { creatureId: 6, level: 3 }],
+                  defeated: false, reward: 100
                 },
                 { id: 'trainer2', x: 24, y: 14, type: 'trainer', name: '训练师小红',
                   dialogs: ['我的精灵很强哦！'],
-                  creatures: [
-                      { creatureId: 2, level: 4 },
-                      { creatureId: 1, level: 4 }
-                  ],
-                  defeated: false,
-                  reward: 150
+                  creatures: [{ creatureId: 2, level: 4 }, { creatureId: 1, level: 4 }],
+                  defeated: false, reward: 150
+                },
+                { id: 'trainer3', x: 8, y: 4, type: 'trainer', name: '捕虫少年阿杰',
+                  dialogs: ['我专门捕捉虫系精灵！', '来比比看谁的更强！'],
+                  creatures: [{ creatureId: 16, level: 5 }, { creatureId: 15, level: 5 }],
+                  defeated: false, reward: 120
+                },
+                { id: 'trainer4', x: 22, y: 4, type: 'trainer', name: '露营者大叔',
+                  dialogs: ['在野外露营最棒了！', '顺便来场对战吧！'],
+                  creatures: [{ creatureId: 13, level: 6 }, { creatureId: 7, level: 6 }],
+                  defeated: false, reward: 180
                 },
                 { id: 'wild_hiker', x: 18, y: 5, type: 'dialog', name: '旅行者',
                   dialogs: ['这片草丛里什么精灵都有。', '往东走可以到碧波镇。']
                 }
             ],
-            // 野外可遇到的精灵
+            // 野外可遇到的精灵（含新精灵）
             wildCreatures: [
-                { id: 1, minLevel: 2, maxLevel: 4, weight: 20 },
-                { id: 2, minLevel: 2, maxLevel: 4, weight: 20 },
-                { id: 3, minLevel: 2, maxLevel: 4, weight: 20 },
-                { id: 4, minLevel: 2, maxLevel: 4, weight: 15 },
-                { id: 5, minLevel: 2, maxLevel: 3, weight: 10 },
-                { id: 6, minLevel: 2, maxLevel: 4, weight: 15 }
+                { id: 1, minLevel: 2, maxLevel: 4, weight: 15 },
+                { id: 2, minLevel: 2, maxLevel: 4, weight: 15 },
+                { id: 3, minLevel: 2, maxLevel: 4, weight: 15 },
+                { id: 4, minLevel: 2, maxLevel: 4, weight: 12 },
+                { id: 5, minLevel: 2, maxLevel: 3, weight: 8 },
+                { id: 6, minLevel: 2, maxLevel: 4, weight: 12 },
+                { id: 13, minLevel: 2, maxLevel: 3, weight: 8 },
+                { id: 14, minLevel: 2, maxLevel: 3, weight: 6 },
+                { id: 15, minLevel: 2, maxLevel: 3, weight: 6 },
+                { id: 16, minLevel: 2, maxLevel: 4, weight: 8 }
             ]
         };
     }
@@ -438,7 +446,81 @@ class MapManager {
                 },
                 { id: 'town2_man', x: 15, y: 7, type: 'dialog', name: '镇民',
                   dialogs: ['碧波镇的道馆馆主非常厉害！', '建议先在野外多训练一下。']
+                },
+                { id: 'gym_leader_rock', x: 14, y: 4, type: 'gym_leader', name: '道馆馆主·岩铁',
+                  dialogs: ['我是碧波道馆的馆主岩铁！', '我的岩石精灵坚不可摧！', '想挑战我的话，先击败3个训练师吧！'],
+                  creatures: [{ creatureId: 11, level: 12 }, { creatureId: 5, level: 10 }, { creatureId: 21, level: 14 }],
+                  defeated: false, reward: 500
+                },
+                { id: 'rival_town2', x: 5, y: 11, type: 'rival', name: '宿敌·阿雷',
+                  dialogs: ['哈哈！你终于追上来了？', '我已经获得了岩石徽章！', '...开玩笑的，我也刚到。'],
+                  creatures: [{ creatureId: 10, level: 8 }, { creatureId: 22, level: 9 }],
+                  defeated: false, reward: 200
                 }
+            ]
+        };
+    }
+
+    /** 幽暗洞穴 - 20x15 瓦片 */
+    _generateCave() {
+        const W = 20, H = 15;
+        const tiles = [];
+        const collision = [];
+
+        for (let y = 0; y < H; y++) {
+            tiles[y] = [];
+            collision[y] = [];
+            for (let x = 0; x < W; x++) {
+                if (y === 0 || y === H-1 || x === 0 || x === W-1) {
+                    tiles[y][x] = 'caveWall';
+                    collision[y][x] = 1;
+                } else {
+                    tiles[y][x] = 'caveFloor';
+                    collision[y][x] = 0;
+                }
+            }
+        }
+
+        // 中央通道
+        for (let x = 1; x < W-1; x++) { tiles[7][x] = 'cavePath'; tiles[8][x] = 'cavePath'; }
+
+        // 随机装饰
+        const decoPositions = [[2,2],[5,3],[12,4],[7,10],[15,11],[17,6],[3,12]];
+        decoPositions.forEach(([dx, dy]) => {
+            if (dy > 0 && dy < H-1 && dx > 0 && dx < W-1) {
+                tiles[dy][dx] = Math.random() > 0.5 ? 'caveCrystal' : 'caveStalagmite';
+                collision[dy][dx] = 1;
+            }
+        });
+
+        return {
+            id: 'cave', name: '幽暗洞穴', width: W, height: H, tiles, collision,
+            playerStart: { x: 2, y: 7 },
+            transfers: [
+                { x: W-1, y: 7, targetMap: 'wild', targetX: 10, targetY: 16 },
+                { x: W-1, y: 8, targetMap: 'wild', targetX: 10, targetY: 17 }
+            ],
+            npcs: [
+                { id: 'cave_miner', x: 5, y: 5, type: 'trainer', name: '矿工老李',
+                  dialogs: ['我在这里挖矿好多年了！', '这里的矿石能进化某些精灵哦。'],
+                  creatures: [{ creatureId: 5, level: 7 }, { creatureId: 21, level: 6 }],
+                  defeated: false, reward: 200
+                },
+                { id: 'cave_hermit', x: 14, y: 11, type: 'dialog', name: '隐居者',
+                  dialogs: ['洞穴深处藏着稀有的暗属性精灵...', '小心，它们很凶猛。']
+                },
+                { id: 'trainer_cave_boss', x: 9, y: 3, type: 'trainer', name: '洞穴探险家阿强',
+                  dialogs: ['我是这个洞穴的守护者！', '想过去的话先击败我！'],
+                  creatures: [{ creatureId: 11, level: 9 }, { creatureId: 22, level: 10 }, { creatureId: 12, level: 8 }],
+                  defeated: false, reward: 350
+                }
+            ],
+            wildCreatures: [
+                { id: 5, minLevel: 4, maxLevel: 7, weight: 18 },
+                { id: 6, minLevel: 3, maxLevel: 6, weight: 15 },
+                { id: 11, minLevel: 4, maxLevel: 6, weight: 10 },
+                { id: 21, minLevel: 5, maxLevel: 8, weight: 8 },
+                { id: 22, minLevel: 4, maxLevel: 7, weight: 12 }
             ]
         };
     }
@@ -799,6 +881,117 @@ class MapManager {
                 ctx.fillRect(px + 12, py + 10, 8, 8);
                 ctx.fillStyle = '#ff9500';
                 ctx.fillRect(px + 14, py + 12, 4, 4);
+                break;
+
+            // ===== 洞穴瓦片 =====
+            case 'caveWall':
+                ctx.fillStyle = '#3a3540';
+                ctx.fillRect(px, py, ts, ts);
+                // 墙壁纹理
+                ctx.fillStyle = '#2d2833';
+                ctx.fillRect(px + 0, py + 0, ts, 4);
+                ctx.fillRect(px + 4, py + 6, 20, 3);
+                ctx.fillRect(px + 2, py + 14, 24, 2);
+                ctx.fillRect(px + 6, py + 22, 14, 3);
+                ctx.fillRect(px + 0, py + 28, ts, 4);
+                // 岩石凸起
+                ctx.fillStyle = '#4a4550';
+                ctx.fillRect(px + 4, py + 4, 10, 8);
+                ctx.fillRect(px + 18, py + 18, 8, 8);
+                // 高光
+                ctx.fillStyle = '#5a5560';
+                ctx.fillRect(px + 6, py + 5, 4, 2);
+                ctx.fillRect(px + 20, py + 19, 3, 2);
+                break;
+
+            case 'caveFloor':
+                ctx.fillStyle = '#2a2530';
+                ctx.fillRect(px, py, ts, ts);
+                // 地面碎石纹理
+                ctx.fillStyle = '#35303d';
+                ctx.fillRect(px + 4, py + 6, 4, 3);
+                ctx.fillRect(px + 18, py + 12, 5, 4);
+                ctx.fillRect(px + 8, py + 22, 6, 3);
+                ctx.fillRect(px + 22, py + 26, 3, 3);
+                // 细小裂缝
+                ctx.fillStyle = '#1f1a25';
+                ctx.fillRect(px + 10, py + 8, 1, 12);
+                ctx.fillRect(px + 26, py + 4, 1, 18);
+                break;
+
+            case 'cavePath':
+                ctx.fillStyle = '#3a3540';
+                ctx.fillRect(px, py, ts, ts);
+                // 平整地面
+                ctx.fillStyle = '#43404a';
+                ctx.fillRect(px + 2, py + 2, 28, 28);
+                // 路面痕迹
+                ctx.fillStyle = '#3a3540';
+                ctx.fillRect(px + 6, py + 8, 8, 2);
+                ctx.fillRect(px + 18, py + 18, 10, 2);
+                ctx.fillRect(px + 10, py + 24, 6, 2);
+                break;
+
+            case 'caveCrystal':
+                ctx.fillStyle = '#2a2530';
+                ctx.fillRect(px, py, ts, ts);
+                // 晶体底座
+                ctx.fillStyle = '#5a4a6a';
+                ctx.fillRect(px + 10, py + 20, 12, 10);
+                // 主晶体 - 紫色发光
+                const crystalGrad = ctx.createLinearGradient(px+12, py+2, px+20, py+22);
+                crystalGrad.addColorStop(0, '#b088ff');
+                crystalGrad.addColorStop(0.5, '#8855dd');
+                crystalGrad.addColorStop(1, '#6633bb');
+                ctx.fillStyle = crystalGrad;
+                ctx.beginPath();
+                ctx.moveTo(px + 16, py + 2);
+                ctx.lineTo(px + 22, py + 14);
+                ctx.lineTo(px + 19, py + 26);
+                ctx.lineTo(px + 13, py + 26);
+                ctx.lineTo(px + 10, py + 14);
+                ctx.fill();
+                // 高光
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.fillRect(px + 14, py + 6, 3, 8);
+                // 发光效果
+                ctx.fillStyle = 'rgba(176,136,255,0.15)';
+                ctx.fillRect(px + 4, py + 0, 24, 30);
+                break;
+
+            case 'caveStalagmite':
+                ctx.fillStyle = '#2a2530';
+                ctx.fillRect(px, py, ts, ts);
+                // 石笋底部
+                ctx.fillStyle = '#4a4050';
+                ctx.fillRect(px + 8, py + 18, 16, 12);
+                ctx.fillStyle = '#5a5060';
+                ctx.fillRect(px + 10, py + 10, 12, 10);
+                ctx.fillStyle = '#6a6070';
+                ctx.fillRect(px + 12, py + 4, 8, 8);
+                // 尖顶
+                ctx.fillStyle = '#7a7080';
+                ctx.fillRect(px + 14, py + 0, 4, 6);
+                // 阴影
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(px + 22, py + 20, 6, 8);
+                break;
+
+            case 'caveStalactite':
+                ctx.fillStyle = '#2a2530';
+                ctx.fillRect(px, py, ts, ts);
+                // 钟乳石顶部
+                ctx.fillStyle = '#5a5060';
+                ctx.fillRect(px + 12, py + 0, 8, 6);
+                ctx.fillStyle = '#6a6070';
+                ctx.fillRect(px + 10, py + 4, 12, 8);
+                ctx.fillStyle = '#4a4050';
+                ctx.fillRect(px + 8, py + 10, 16, 10);
+                ctx.fillStyle = '#3a3040';
+                ctx.fillRect(px + 6, py + 18, 20, 10);
+                // 尖端滴水
+                ctx.fillStyle = '#88aacc';
+                ctx.fillRect(px + 15, py + 27, 2, 3);
                 break;
 
             default:

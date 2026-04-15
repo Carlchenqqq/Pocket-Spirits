@@ -340,18 +340,81 @@ class ExploreScene extends Scene {
         const item = items[index];
         const data = g.creaturesManager.getItemData(item.itemId);
         if (!data) { return; }
-        if (data.type === 'potion') {
-            const target = g.creaturesManager.getFirstAlive();
-            if (!target) { g.ui.showMessage('没有存活的精灵'); return; }
-            if (target.currentHP >= target.maxHP) { g.ui.showMessage(`${target.name}已经满血了`); return; }
-            g.ui.showButtonDialog(`对 ${target.name} 使用 ${data.name}？`, ['确认使用', '取消'], (btnIndex) => {
-                if (btnIndex === 0) {
-                    g.creaturesManager.useItem(item.itemId);
-                    target.currentHP = Math.min(target.maxHP, target.currentHP + data.healAmount);
-                    g.ui.showMessage(`${target.name}恢复了${data.healAmount}HP！`);
-                }
-            });
-        } else g.ui.showMessage('这个道具无法在这里使用');
+
+        // V1: 扩展物品使用逻辑，支持所有新类型
+        switch (data.type || data.category) {
+            case 'potion':
+            case 'medicine': {
+                // 回血类物品（含全回复药）
+                const target = g.creaturesManager.getFirstAlive();
+                if (!target) { g.ui.showMessage('没有存活的精灵'); return; }
+                if (target.currentHP >= target.maxHP) { g.ui.showMessage(`${target.name}已经满血了`); return; }
+                const healAmount = data.healAmount || 20;
+                g.ui.showButtonDialog(`对 ${target.name} 使用 ${data.name}？`, ['确认使用', '取消'], (btnIndex) => {
+                    if (btnIndex === 0) {
+                        g.creaturesManager.useItem(item.itemId);
+                        target.currentHP = Math.min(target.maxHP, target.currentHP + healAmount);
+                        g.ui.showMessage(`${target.name}恢复了${healAmount}HP！`);
+                    }
+                });
+                break;
+            }
+
+            case 'full_heal': {
+                // 完全体力回复
+                const target = g.creaturesManager.getFirstAlive();
+                if (!target) { g.ui.showMessage('没有存活的精灵'); return; }
+                g.ui.showButtonDialog(`对 ${target.name} 使用 ${data.name}？(完全恢复HP)`, ['确认使用', '取消'], (btnIndex) => {
+                    if (btnIndex === 0) {
+                        g.creaturesManager.useItem(item.itemId);
+                        target.currentHP = target.maxHP;
+                        g.ui.showMessage(`${target.name}完全恢复了体力！`);
+                    }
+                });
+                break;
+            }
+
+            case 'status_cure': {
+                // 状态恢复类（解毒/解麻痹/解烧伤等）
+                const target = g.creaturesManager.getFirstAlive();
+                if (!target) { g.ui.showMessage('没有存活的精灵'); return; }
+                const statusName = { poison: '中毒', paralyze: '麻痹', burn: '烧伤', freeze: '冰冻', sleep: '睡眠' };
+                const currentStatus = target.status;
+                if (!currentStatus) { g.ui.showMessage(`${target.name}没有任何异常状态`); return; }
+                g.ui.showButtonDialog(`用${data.name}解除${target.name}的${statusName[currentStatus]||currentStatus}？`, ['确认使用', '取消'], (btnIndex) => {
+                    if (btnIndex === 0) {
+                        g.creaturesManager.useItem(item.itemId);
+                        target.status = null;
+                        g.ui.showMessage(`${target.name}的${statusName[currentStatus]||currentStatus}被治愈了！`);
+                    }
+                });
+                break;
+            }
+
+            case 'boost': {
+                // 能力提升类（战斗中临时提升属性）
+                const target = g.creaturesManager.getFirstAlive();
+                if (!target) { g.ui.showMessage('没有存活的精灵'); return; }
+                const boostType = data.boostType || 'attack';   // attack/defense/speed
+                const boostLabel = { attack: '攻击力', defense: '防御力', speed: '速度' }[boostType] || boostType;
+                g.ui.showButtonDialog(`给 ${target.name} 使用 ${data.name}？(+${boostLabel})`, ['确认使用', '取消'], (btnIndex) => {
+                    if (btnIndex === 0) {
+                        g.creaturesManager.useItem(item.itemId);
+                        target.statModifiers[boostType] = Math.min(6, (target.statModifiers[boostType]||0) + (data.boostValue||1));
+                        g.ui.showMessage(`${target.name}的${boostLabel}提升了！`);
+                    }
+                });
+                break;
+            }
+
+            case 'ball':
+            case 'key_item':
+                g.ui.showMessage(`${data.name}无法在这里使用（战斗中使用）`);
+                break;
+
+            default:
+                g.ui.showMessage('这个道具无法在这里使用');
+        }
     }
 
     // ========== 图鉴 ==========

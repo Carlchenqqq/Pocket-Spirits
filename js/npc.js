@@ -52,6 +52,15 @@ class NPCManager {
             case 'healer':
                 this._handleHealer(npc, gameManager);
                 break;
+            case 'gym_leader':
+                this._handleGymLeader(npc, gameManager);
+                break;
+            case 'quest_giver':
+                this._handleQuestGiver(npc, gameManager);
+                break;
+            case 'rival':
+                this._handleRival(npc, gameManager);
+                break;
             default:
                 this._handleDialog(npc, gameManager);
         }
@@ -148,6 +157,118 @@ class NPCManager {
             ...npc.dialogs,
             `已为${healedCount}只精灵恢复了体力！`
         ]);
+        gameManager.setState('DIALOG');
+    }
+
+    /** 处理道馆馆主 */
+    _handleGymLeader(npc, gameManager) {
+        gameManager.creaturesManager.recordNPCEncounter(npc.id, npc.name, npc.type);
+        
+        if (npc.defeated) {
+            gameManager.ui.showDialog(['你已经获得了徽章！', '你的实力非常强！']);
+            gameManager.setState('DIALOG');
+            return;
+        }
+
+        if (gameManager.creaturesManager.party.length === 0) {
+            gameManager.ui.showDialog(['你没有精灵无法挑战道馆！']);
+            gameManager.setState('DIALOG');
+            return;
+        }
+
+        // 检查挑战条件（需要击败一定数量训练师）
+        const defeatedTrainers = (gameManager.defeatedTrainers || []).length;
+        if (defeatedTrainers < 3) {
+            gameManager.ui.showDialog([
+                ...npc.dialogs,
+                '想挑战我的话，先去野外击败至少3个训练师吧！',
+                `目前战绩：${defeatedTrainers}/3`
+            ]);
+            gameManager.setState('DIALOG');
+            return;
+        }
+
+        gameManager.ui.showDialog(npc.dialogs || [
+            '我是碧波镇道馆馆主！',
+            '让我见识一下你的实力吧！'
+        ], () => {
+            const leaderParty = (npc.creatures || []).map(c =>
+                gameManager.creaturesManager.createCreature(c.creatureId, c.level)
+            );
+            if (leaderParty.length > 0) {
+                // 道馆战标记
+                gameManager.currentBattleType = 'gym';
+                gameManager.gymLeaderId = npc.id;
+                gameManager.startTrainerBattle(npc, leaderParty);
+            }
+        });
+        gameManager.setState('DIALOG');
+    }
+
+    /** 处理任务发布者 */
+    _handleQuestGiver(npc, gameManager) {
+        gameManager.creaturesManager.recordNPCEncounter(npc.id, npc.name, npc.type);
+        
+        // 检查任务状态
+        const questId = npc.questId || npc.id;
+        const questState = gameManager.quests ? gameManager.quests[questId] : null;
+        
+        if (questState === 'completed') {
+            gameManager.ui.showDialog(npc.completedDialogs || ['感谢你的帮助！']);
+            gameManager.setState('DIALOG');
+            return;
+        }
+
+        if (questState === 'active') {
+            gameManager.ui.showDialog(npc.progressDialogs || ['任务进行中...加油！']);
+            gameManager.setState('DIALOG');
+            return;
+        }
+
+        // 接受任务
+        const rewardText = npc.reward ? `\n奖励：${npc.reward}金币` : '';
+        gameManager.ui.showDialog([
+            ...(npc.dialogs || ['能帮我个忙吗？']),
+            ...(npc.questDesc ? [npc.questDesc] : []),
+            rewardText,
+            '接受任务吗？'
+        ], () => {
+            if (!gameManager.quests) gameManager.quests = {};
+            gameManager.quests[questId] = 'active';
+            gameManager.ui.showMessage('接受了新任务！');
+        });
+        gameManager.setState('DIALOG');
+    }
+
+    /** 处理对手（宿敌） */
+    _handleRival(npc, gameManager) {
+        gameManager.creaturesManager.recordNPCEncounter(npc.id, npc.name, npc.type);
+        
+        if (npc.defeated) {
+            gameManager.ui.showDialog(npc.defeatDialogs || [
+                '哼，下次我一定赢你！'
+            ]);
+            gameManager.setState('DIALOG');
+            return;
+        }
+
+        if (gameManager.creaturesManager.party.length === 0) {
+            gameManager.ui.showDialog(['你连精灵都没有？太弱了！']);
+            gameManager.setState('DIALOG');
+            return;
+        }
+
+        gameManager.ui.showDialog(npc.dialogs || [
+            '又见面了！这次我不会输给你！',
+            '来对战吧！'
+        ], () => {
+            const rivalParty = (npc.creatures || []).map(c =>
+                gameManager.creaturesManager.createCreature(c.creatureId, c.level)
+            );
+            if (rivalParty.length > 0) {
+                gameManager.startTrainerBattle(npc, rivalParty);
+            }
+        });
         gameManager.setState('DIALOG');
     }
 
