@@ -1,0 +1,60 @@
+/* 精灵纪元 - 像素风格样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: monospace;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+
+#game-container {
+    position: relative;
+    width: 960px;
+    height: 720px;
+}
+
+#gameCanvas {
+    width: 960px;
+    height: 720px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+    border: 2px solid #333;
+}
+
+/* 响应式布局 */
+@media (max-width: 960px) {
+    #game-container {
+        width: 100vw;
+        height: calc(100vw * 3 / 4);
+        max-height: 100vh;
+    }
+
+    #gameCanvas {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+@media (max-height: 640px) and (orientation: landscape) {
+    #game-container {
+        width: calc(100vh * 4 / 3);
+        height: 100vh;
+    }
+
+    #gameCanvas {
+        width: 100%;
+        height: 100%;
+    }
+}

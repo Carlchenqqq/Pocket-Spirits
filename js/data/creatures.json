@@ -1,0 +1,14 @@
+[
+  {"id":1,"name":"焰尾狐","type":"fire","rarity":"common","baseStats":{"hp":45,"attack":52,"defense":43,"speed":65},"skills":[1,2,11]},
+  {"id":2,"name":"芽叶兔","type":"grass","rarity":"common","baseStats":{"hp":50,"attack":45,"defense":55,"speed":50},"skills":[3,4,12]},
+  {"id":3,"name":"水泡蛙","type":"water","rarity":"common","baseStats":{"hp":48,"attack":48,"defense":50,"speed":55},"skills":[5,6,13]},
+  {"id":4,"name":"雷电鼠","type":"electric","rarity":"common","baseStats":{"hp":40,"attack":50,"defense":40,"speed":70},"skills":[7,8,14]},
+  {"id":5,"name":"岩甲兽","type":"rock","rarity":"common","baseStats":{"hp":55,"attack":45,"defense":60,"speed":30},"skills":[9,10,15]},
+  {"id":6,"name":"暗影蝠","type":"dark","rarity":"common","baseStats":{"hp":42,"attack":45,"defense":35,"speed":60},"skills":[16,17,18]},
+  {"id":7,"name":"火龙崽","type":"fire","rarity":"rare","baseStats":{"hp":55,"attack":65,"defense":45,"speed":60},"skills":[1,2,19]},
+  {"id":8,"name":"花仙子","type":"grass","rarity":"rare","baseStats":{"hp":60,"attack":50,"defense":55,"speed":55},"skills":[3,4,20]},
+  {"id":9,"name":"海王蛇","type":"water","rarity":"rare","baseStats":{"hp":58,"attack":62,"defense":52,"speed":58},"skills":[5,6,21]},
+  {"id":10,"name":"雷鹰","type":"electric","rarity":"rare","baseStats":{"hp":52,"attack":60,"defense":42,"speed":68},"skills":[7,8,22]},
+  {"id":11,"name":"铁壁龟","type":"rock","rarity":"rare","baseStats":{"hp":65,"attack":50,"defense":70,"speed":25},"skills":[9,10,23]},
+  {"id":12,"name":"幻影龙","type":"dragon","rarity":"legendary","baseStats":{"hp":80,"attack":75,"defense":65,"speed":70},"skills":[19,24,25,26]}
+]
