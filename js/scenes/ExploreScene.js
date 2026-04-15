@@ -192,14 +192,27 @@ class ExploreScene extends Scene {
     // ========== 游戏菜单 ==========
     _updateGameMenu(now) {
         const g = this.game;
+        
+        // 先处理键盘导航（更新高亮）
+        if (g.input.isJustPressed('ArrowUp') || g.input.isJustPressed('KeyW')) {
+            this.gameMenuIndex = Math.max(0, this.gameMenuIndex - 1);
+            g.input.lastActionTime = now;
+        }
+        if (g.input.isJustPressed('ArrowDown') || g.input.isJustPressed('KeyS')) {
+            this.gameMenuIndex = Math.min(this.gameMenuItems.length - 1, this.gameMenuIndex + 1);
+            g.input.lastActionTime = now;
+        }
+
+        // 再处理点击（点击优先于当前高亮索引）
         if (g.input.hasPendingClick()) {
             const click = g.input.getClick();
             if (click) {
                 const menuX = 10, menuY = 30, itemStartY = menuY + 30, itemH = 22;
+                
                 if (click.x >= menuX && click.x <= menuX + 120 && click.y >= itemStartY && click.y <= itemStartY + this.gameMenuItems.length * itemH) {
                     const idx = Math.floor((click.y - itemStartY) / itemH);
                     if (idx >= 0 && idx < this.gameMenuItems.length) {
-                        this.gameMenuIndex = idx;
+                        // 直接用点击位置确定的 idx，不用 gameMenuIndex
                         this._executeMenuItem(idx);
                         return;
                     }
@@ -209,8 +222,7 @@ class ExploreScene extends Scene {
                 }
             }
         }
-        if (g.input.isJustPressed('ArrowUp') || g.input.isJustPressed('KeyW')) this.gameMenuIndex = Math.max(0, this.gameMenuIndex - 1);
-        if (g.input.isJustPressed('ArrowDown') || g.input.isJustPressed('KeyS')) this.gameMenuIndex = Math.min(this.gameMenuItems.length - 1, this.gameMenuIndex + 1);
+        
         if (g.input.isConfirmPressed(now)) this._executeMenuItem(this.gameMenuIndex);
         if (g.input.isCancelPressed()) this.gameMenuOpen = false;
     }
@@ -218,15 +230,19 @@ class ExploreScene extends Scene {
     _executeMenuItem(index) {
         const g = this.game;
         switch (index) {
-            case 0: this._openPartyMenu(); break;
+            case 0:
+                this._openPartyMenu();
+                break;
             case 1:
                 this.gameMenuOpen = false;
                 this.bagMode = true;
+                this.dexMode = false;
                 g.ui.bagSelectedIndex = 0;
                 g.ui.showBag(g.creaturesManager.items, g.creaturesManager, () => {});
                 break;
             case 2:
                 this.gameMenuOpen = false;
+                this.bagMode = false;
                 this.dexMode = true;
                 this.dexPage = 'creature';
                 this.dexScrollIndex = 0;
@@ -315,21 +331,16 @@ class ExploreScene extends Scene {
         if (index < 0 || index >= items.length) return;
         const item = items[index];
         const data = g.creaturesManager.getItemData(item.itemId);
-        console.log('[Bag] use item:', index, '| itemId:', item.itemId, '| data:', data, '| type:', data?.type);
-        if (!data) { console.log('[Bag] no data, abort'); return; }
+        if (!data) { return; }
         if (data.type === 'potion') {
             const target = g.creaturesManager.getFirstAlive();
             if (!target) { g.ui.showMessage('没有存活的精灵'); return; }
             if (target.currentHP >= target.maxHP) { g.ui.showMessage(`${target.name}已经满血了`); return; }
-            console.log('[Bag] showing button dialog for potion');
             g.ui.showButtonDialog(`对 ${target.name} 使用 ${data.name}？`, ['确认使用', '取消'], (btnIndex) => {
-                console.log('[Bag] button dialog callback, btnIndex:', btnIndex);
                 if (btnIndex === 0) {
                     g.creaturesManager.useItem(item.itemId);
                     target.currentHP = Math.min(target.maxHP, target.currentHP + data.healAmount);
                     g.ui.showMessage(`${target.name}恢复了${data.healAmount}HP！`);
-                } else {
-                    console.log('[Bag] cancelled');
                 }
             });
         } else g.ui.showMessage('这个道具无法在这里使用');

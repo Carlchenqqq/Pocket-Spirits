@@ -27,12 +27,10 @@ class BattleScene extends Scene {
 
     _onBattleEnd(result) {
         const g = this.game;
-        console.log('[BattleScene] _onBattleEnd | result:', result, '| stack:', [...g.sceneManager.sceneStack]);
         const exploreScene = g.sceneManager.scenes.get('explore');
         if (exploreScene) {
             exploreScene._onBattleEnd(result);
         }
         g.sceneManager.pop();
-        console.log('[BattleScene] after pop | stack:', [...g.sceneManager.sceneStack], '| current:', g.sceneManager.getCurrentSceneId());
     }
 }

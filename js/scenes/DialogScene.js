@@ -64,14 +64,11 @@ class DialogScene extends Scene {
     _finishDialog() {
         const g = this.game;
         const callback = g.ui.dialogCallback;
-        console.log('[DialogScene] _finishDialog | callback:', !!callback, '| stack:', [...g.sceneManager.sceneStack]);
         // 先 pop DialogScene
         g.sceneManager.pop();
-        console.log('[DialogScene] after pop | stack:', [...g.sceneManager.sceneStack], '| current:', g.sceneManager.getCurrentSceneId());
         // 再执行回调（回调中可能 push battle/shop 等新场景）
         if (callback) {
             callback();
-            console.log('[DialogScene] after callback | stack:', [...g.sceneManager.sceneStack], '| current:', g.sceneManager.getCurrentSceneId());
         }
     }
 

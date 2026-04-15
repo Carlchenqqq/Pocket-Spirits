@@ -85,7 +85,7 @@ class UIManager {
 
     /** 显示按钮弹框 */
     showButtonDialog(text, buttons, callback) {
-        console.log('[UI] showButtonDialog:', text, '| buttons:', buttons);
+        // console.log('[UI] showButtonDialog:', text, '| buttons:', buttons);
         this.buttonDialogActive = true;
         this.buttonDialogText = text;
         this.buttonDialogButtons = buttons;

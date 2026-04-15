@@ -65,7 +65,6 @@ class SceneManager {
         this.currentScene = newScene;
         newScene.onEnter(params);
 
-        console.log('[SceneManager] push:', id, '| stack:', [...this.sceneStack]);
         this.isTransitioning = false;
     }
 
@@ -75,7 +74,6 @@ class SceneManager {
 
         this.isTransitioning = true;
 
-        const exitId = this.getCurrentSceneId();
         // 退出当前场景
         if (this.currentScene) {
             this.currentScene.onExit();
@@ -90,7 +88,6 @@ class SceneManager {
             this.currentScene.onResume();
         }
 
-        console.log('[SceneManager] pop:', exitId, '| stack:', [...this.sceneStack], '| current:', prevId);
         this.isTransitioning = false;
     }
 
