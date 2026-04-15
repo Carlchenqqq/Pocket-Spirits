@@ -19,9 +19,7 @@ class DialogScene extends Scene {
         const now = performance.now();
 
         // 对话回调已触发新场景（战斗/商店等），不再处理输入
-        if (this._scenePushed && g.state !== 'DIALOG') {
-            return;
-        }
+        if (this._scenePushed) return;
 
         g.ui.update(deltaTime);
 
