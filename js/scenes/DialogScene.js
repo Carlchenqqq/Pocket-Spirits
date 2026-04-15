@@ -18,18 +18,24 @@ class DialogScene extends Scene {
         const g = this.game;
         const now = performance.now();
 
-        // 对话回调已触发新场景（战斗/商店等），不再处理输入
-        if (this._scenePushed) return;
+        // 如果之前push了子场景（战斗/商店），现在又回来了，
+        // 说明子场景已经pop，我们需要自动pop自己回到探索场景
+        if (this._scenePushed) {
+            // 清理对话UI残留状态
+            g.ui.dialogActive = false;
+            g.ui.dialogQueue = [];
+            g.ui.dialogCallback = null;
+            this._scenePushed = false;
+            g.sceneManager.pop();
+            return;
+        }
 
         g.ui.update(deltaTime);
 
         if (g.input.hasPendingClick()) {
             g.input.clearClick();
             if (!g.ui.dialogConfirm()) {
-                if (this._scenePushed) {
-                    // 对话回调中已 push 新场景，等待新场景接管
-                    return;
-                }
+                // dialogConfirm 返回 false = 对话队列已空
                 if (this.titleChoiceActive) {
                     this.titleChoiceActive = false;
                     g.titleChoiceActive = false;
@@ -48,10 +54,7 @@ class DialogScene extends Scene {
 
         if (g.input.isConfirmPressed(now)) {
             if (!g.ui.dialogConfirm()) {
-                if (this._scenePushed) {
-                    // 对话回调中已 push 新场景，等待新场景接管
-                    return;
-                }
+                // dialogConfirm 返回 false = 对话队列已空
                 if (this.titleChoiceActive) {
                     this.titleChoiceActive = false;
                     g.titleChoiceActive = false;
@@ -75,7 +78,7 @@ class DialogScene extends Scene {
         }
     }
 
-    /** 标记对话回调中已push新场景，阻止pop */
+    /** 标记对话回调中已push新场景，阻止立即pop */
     markScenePushed() {
         this._scenePushed = true;
     }
