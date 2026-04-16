@@ -124,14 +124,18 @@ class ExploreScene extends Scene {
             }
         }
 
-        // 点击移动
+        // 点击移动（适配 camera zoom）
         const click = g.input.getClick();
         if (click) {
             const map = g.mapManager.getCurrentMap();
             if (map) {
                 const ts = g.mapManager.tileSize;
-                const clickTileX = Math.floor((click.x + g.camera.x) / ts);
-                const clickTileY = Math.floor((click.y + g.camera.y) / ts);
+                const zoom = g.camera.zoom;
+                // 屏幕坐标 → 世界坐标（考虑 zoom 缩放）
+                const worldClickX = click.x / zoom + g.camera.x;
+                const worldClickY = click.y / zoom + g.camera.y;
+                const clickTileX = Math.floor(worldClickX / ts);
+                const clickTileY = Math.floor(worldClickY / ts);
                 const dx = clickTileX - g.player.tileX;
                 const dy = clickTileY - g.player.tileY;
                 const dist = Math.abs(dx) + Math.abs(dy);
