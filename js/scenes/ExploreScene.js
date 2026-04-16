@@ -1475,17 +1475,32 @@ class ExploreScene extends Scene {
             ctx.fillStyle='#4CAF50';ctx.beginPath();ctx.moveTo(tagX,tagY+10);ctx.lineTo(tagX-6,tagY+16);ctx.lineTo(tagX+6,tagY+16);ctx.closePath();ctx.fill();
         }
 
-        // ---- 5) 状态标签 ----
+        // ---- 5) 状态标签（当前地图始终显示）----
         for(const [mapId,reg] of Object.entries(params.cardRegions)){
             const map=g.mapManager.maps[mapId];if(!map)continue;
-            const isCurrent=mapId===currentMapId,tp=teleportPoints.find(p=>p.id===mapId);if(!tp)continue;
+            const isCurrent=mapId===currentMapId;
+
+            // 当前位置：无条件显示
+            if(isCurrent){
+                const statusText='当前位置',statusColor='#4CAF50';
+                const statusFont=Math.max(11,Math.round(13*params.scale));
+                ctx.font=`bold ${statusFont}px monospace`;ctx.textAlign='center';
+                const stW=ctx.measureText(statusText).width+14,stX=reg.x+reg.w/2,stY=reg.y+reg.h+14*params.scale;
+                ctx.fillStyle='rgba(76,175,80,0.18)';
+                this._roundRect(ctx,stX-stW/2,stY-10*params.scale,stW,18*params.scale,4);ctx.fill();
+                ctx.fillStyle=statusColor;ctx.fillText(statusText,stX,stY+3*params.scale);
+                continue;
+            }
+
+            // 非当前地图：仅在传送点列表中才显示
+            const tp=teleportPoints.find(p=>p.id===mapId);if(!tp)continue;
             const hasBadge=tp.badgeId===null||g.creaturesManager.hasBadge(tp.badgeId);
-            const statusText=isCurrent?'当前位置':(hasBadge?'可传送':`${tp.leaderName}（锁定）`);
-            const statusColor=isCurrent?'#4CAF50':(hasBadge?'#FFD700':'#F44336');
+            const statusText=hasBadge?'可传送':`${tp.leaderName}（锁定）`;
+            const statusColor=hasBadge?'#FFD700':'#F44336';
             const statusFont=Math.max(11,Math.round(13*params.scale));
             ctx.font=`bold ${statusFont}px monospace`;ctx.textAlign='center';
             const stW=ctx.measureText(statusText).width+14,stX=reg.x+reg.w/2,stY=reg.y+reg.h+14*params.scale;
-            ctx.fillStyle=isCurrent?'rgba(76,175,80,0.18)':(hasBadge?'rgba(255,215,0,0.15)':'rgba(244,67,54,0.15)');
+            ctx.fillStyle=hasBadge?'rgba(255,215,0,0.15)':'rgba(244,67,54,0.15)';
             this._roundRect(ctx,stX-stW/2,stY-10*params.scale,stW,18*params.scale,4);ctx.fill();
             ctx.fillStyle=statusColor;ctx.fillText(statusText,stX,stY+3*params.scale);
         }

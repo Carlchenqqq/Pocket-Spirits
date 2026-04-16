@@ -21,11 +21,9 @@ body {
 
 #game-container {
     position: relative;
-    /* 自适应填满视口，保持 4:3 比例 */
-    width: 100vw;
-    height: calc(100vw * 3 / 4);
-    max-width: 100vh * 4 / 3;
-    max-height: 100vh;
+    /* 填满视口，严格保持 4:3 比例不变形 */
+    width: min(100vw, calc(100vh * 4 / 3));
+    height: min(calc(100vw * 3 / 4), 100vh);
 }
 
 #gameCanvas {
