@@ -192,7 +192,7 @@ class ShopManager {
     render(ctx, creaturesManager) {
         if (!this.active) return;
 
-        const W = 640, H = 480;
+        const W = CONFIG.CANVAS_W, H = CONFIG.CANVAS_H;
 
         // 背景
         ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
@@ -385,7 +385,7 @@ class ShopManager {
 
     /** 处理确认框内的点击 */
     _handleConfirmClick(clickX, clickY, creaturesManager) {
-        const W = 640, H = 480;
+        const W = CONFIG.CANVAS_W, H = CONFIG.CANVAS_H;
         const boxW = 320, boxH = 170;
         const boxX = (W - boxW) / 2, boxY = (H - boxH) / 2;
         const btnW = 110, btnH = 36;

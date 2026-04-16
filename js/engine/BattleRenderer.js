@@ -54,8 +54,9 @@ class BattleRenderer {
         ctx.lineTo(360, this.H * 0.38);
         ctx.lineTo(440, this.H * 0.32);
         ctx.lineTo(540, this.H * 0.4);
-        ctx.lineTo(640, this.H * 0.35);
-        ctx.lineTo(640, this.H * 0.5);
+        ctx.lineTo(this.W * 0.84, this.H * 0.35);
+        ctx.lineTo(this.W, this.H * 0.35);
+        ctx.lineTo(this.W, this.H * 0.5);
         ctx.lineTo(0, this.H * 0.5);
         ctx.fill();
 
@@ -262,8 +263,8 @@ class BattleRenderer {
         const btnW = 120, btnH = 35;
         return {
             btnW, btnH,
-            btnX: (640 - btnW) / 2,
-            btnY: 480 / 2 + 40
+            btnX: (1280 - btnW) / 2,
+            btnY: 960 / 2 + 40
         };
     }
 

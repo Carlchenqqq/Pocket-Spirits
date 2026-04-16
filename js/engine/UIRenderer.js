@@ -183,6 +183,6 @@ class UIRenderer {
 
     /** 获取菜单按钮布局（供点击检测） */
     static get menuButtonLayout() {
-        return { x: 640 - 50, y: 480 - 40, w: 40, h: 30 };
+        return { x: CONFIG.CANVAS_W - 50, y: CONFIG.CANVAS_H - 40, w: 40, h: 30 };
     }
 }

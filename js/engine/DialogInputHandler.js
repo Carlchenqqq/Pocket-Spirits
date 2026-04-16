@@ -22,8 +22,8 @@ class DialogInputHandler {
         if (input.hasPendingClick()) {
             const click = input.getClick();
             if (click) {
-                // 点击对话框区域（底部340~480）才响应
-                if (click.y >= 330 && click.y <= 480) {
+                // 点击对话框区域（底部340~CANVAS_H）才响应
+                if (click.y >= 330 && click.y <= CONFIG.CANVAS_H) {
                     triggered = true;
                 }
             }

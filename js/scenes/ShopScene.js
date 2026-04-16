@@ -19,7 +19,7 @@ class ShopScene extends Scene {
                     return;
                 }
                 // 返回按钮检测
-                const W = 640;
+                const W = CONFIG.CANVAS_W;
                 const backBtnW = 50, backBtnH = 22;
                 const backBtnX = W - backBtnW - 10, backBtnY = 12;
                 if (click.x >= backBtnX && click.x <= backBtnX + backBtnW &&

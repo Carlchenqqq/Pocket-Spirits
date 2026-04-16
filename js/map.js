@@ -633,11 +633,13 @@ class MapManager {
         if (!map) return;
 
         const ts = this.tileSize;
+        const viewW = camera.canvasWidth;
+        const viewH = camera.canvasHeight;
         // 计算可见范围
         const startX = Math.max(0, Math.floor(camera.x / ts));
         const startY = Math.max(0, Math.floor(camera.y / ts));
-        const endX = Math.min(map.width, Math.ceil((camera.x + 640) / ts) + 1);
-        const endY = Math.min(map.height, Math.ceil((camera.y + 480) / ts) + 1);
+        const endX = Math.min(map.width, Math.ceil((camera.x + viewW) / ts) + 1);
+        const endY = Math.min(map.height, Math.ceil((camera.y + viewH) / ts) + 1);
 
         for (let y = startY; y < endY; y++) {
             for (let x = startX; x < endX; x++) {

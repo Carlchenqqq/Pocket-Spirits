@@ -87,13 +87,13 @@ class UIInputHandler {
     /** 按钮弹框点击检测 */
     static _getButtonItemAt(x, y) {
         const layout = UIRenderer.buttonDialogLayout;
-        const boxX = (640 - layout.boxW) / 2;
-        const boxY = (480 - layout.boxH) / 2;
+        const boxX = (CONFIG.CANVAS_W - layout.boxW) / 2;
+        const boxY = (CONFIG.CANVAS_H - layout.boxH) / 2;
         const btnW = layout.btnW, btnH = layout.btnH, gap = layout.btnGap;
 
         // 假设2个按钮（确认/取消）
         const totalBtnW = 2 * btnW + gap;
-        const startBtnX = (640 - totalBtnW) / 2;
+        const startBtnX = (CONFIG.CANVAS_W - totalBtnW) / 2;
 
         for (let i = 0; i < 2; i++) {
             const bx = startBtnX + i * (btnW + gap);
