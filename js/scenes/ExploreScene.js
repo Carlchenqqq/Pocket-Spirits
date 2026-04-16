@@ -10,7 +10,7 @@ class ExploreScene extends Scene {
         // 游戏菜单
         this.gameMenuOpen = false;
         this.gameMenuIndex = 0;
-        this.gameMenuItems = ['精灵', '背包', '图鉴', '保存', '读取', '关闭'];
+        this.gameMenuItems = ['精灵', '背包', '图鉴', '徽章', '任务', '保存', '读取', '关闭'];
 
         // 背包模式
         this.bagMode = false;
@@ -19,6 +19,16 @@ class ExploreScene extends Scene {
         this.dexMode = false;
         this.dexPage = 'creature';
         this.dexScrollIndex = 0;
+        this.dexDetailMode = false; // 精灵详情页
+        this.dexDetailId = null;
+
+        // 徽章面板模式
+        this.badgeMode = false;
+        this.badgeScrollIndex = 0;
+
+        // 任务面板模式
+        this.questMode = false;
+        this.questScrollIndex = 0;
 
         // 自动移动
         this.isAutoMoving = false;
@@ -43,6 +53,8 @@ class ExploreScene extends Scene {
         this.gameMenuOpen = false;
         this.bagMode = false;
         this.dexMode = false;
+        this.badgeMode = false;
+        this.questMode = false;
         this.isAutoMoving = false;
         this.moveTarget = null;
     }
@@ -62,6 +74,14 @@ class ExploreScene extends Scene {
         }
         if (this.dexMode) {
             this._updateDex(now);
+            return;
+        }
+        if (this.badgeMode) {
+            this._updateBadgePanel(now);
+            return;
+        }
+        if (this.questMode) {
+            this._updateQuestPanel(now);
             return;
         }
 
@@ -187,6 +207,8 @@ class ExploreScene extends Scene {
         if (this.gameMenuOpen) this._renderGameMenu();
         if (this.bagMode) { g.ui.renderBag(g.creaturesManager); g.ui.renderButtonDialog(); }
         if (this.dexMode) this._renderDex();
+        if (this.badgeMode) this._renderBadgePanel();
+        if (this.questMode) this._renderQuestPanel();
     }
 
     // ========== 游戏菜单 ==========
@@ -253,19 +275,29 @@ class ExploreScene extends Scene {
                 this.dexPage = 'creature';
                 this.dexScrollIndex = 0;
                 break;
-            case 3:
+            case 3: // 徽章
+                this.gameMenuOpen = false;
+                this.badgeMode = true;
+                this.badgeScrollIndex = 0;
+                break;
+            case 4: // 任务
+                this.gameMenuOpen = false;
+                this.questMode = true;
+                this.questScrollIndex = 0;
+                break;
+            case 5: // 保存
                 if (g.saveManager.save(g)) g.ui.showMessage('游戏已保存！');
                 else g.ui.showMessage('保存失败！');
                 this.gameMenuOpen = false;
                 break;
-            case 4:
+            case 6: // 读取
                 if (g.saveManager.hasSave()) {
                     if (g.saveManager.load(g)) g.ui.showMessage('读取存档成功！');
                     else g.ui.showMessage('读取存档失败！');
                 } else g.ui.showMessage('没有找到存档');
                 this.gameMenuOpen = false;
                 break;
-            case 5:
+            case 7: // 关闭
                 this.gameMenuOpen = false;
                 break;
         }
@@ -421,8 +453,22 @@ class ExploreScene extends Scene {
     _updateDex(now) {
         const g = this.game;
         const cm = g.creaturesManager;
+
+        // 详情页模式
+        if (this.dexDetailMode) {
+            if (g.input.isCancelPressed() || g.input.isJustPressed('Escape')) {
+                this.dexDetailMode = false;
+                this.dexDetailId = null;
+            }
+            return;
+        }
+
+        // 精灵图鉴：展示全部精灵（含未发现的占位）
+        const allKeys = this.dexPage === 'creature'
+            ? cm.creaturesData.map(c => c.id)
+            : Object.keys(cm.npcDex);
         const dex = this.dexPage === 'creature' ? cm.creatureDex : cm.npcDex;
-        const keys = Object.keys(dex);
+        const keys = this.dexPage === 'creature' ? allKeys : Object.keys(dex);
         const startY = 90, itemH = 55;
         const maxVisible = Math.floor((g.H - startY - 40) / itemH);
 
@@ -440,13 +486,32 @@ class ExploreScene extends Scene {
                 if (click.y >= startY && click.y < startY + maxVisible * itemH) {
                     const scrollStart = Math.max(0, Math.min(this.dexScrollIndex, keys.length - maxVisible));
                     const idx = scrollStart + Math.floor((click.y - startY) / itemH);
-                    if (idx >= 0 && idx < keys.length) this.dexScrollIndex = idx;
+                    if (idx >= 0 && idx < keys.length) {
+                        this.dexScrollIndex = idx;
+                        // 双击或点击已发现精灵进入详情
+                        if (this.dexPage === 'creature') {
+                            const cId = keys[idx];
+                            if (cm.creatureDex[cId] && cm.creatureDex[cId].encountered) {
+                                this.dexDetailMode = true;
+                                this.dexDetailId = cId;
+                                return;
+                            }
+                        }
+                    }
                     return;
                 }
             }
         }
         if (g.input.isJustPressed('ArrowUp') || g.input.isJustPressed('KeyW')) this.dexScrollIndex = Math.max(0, this.dexScrollIndex - 1);
         if (g.input.isJustPressed('ArrowDown') || g.input.isJustPressed('KeyS')) this.dexScrollIndex = Math.min(keys.length - 1, this.dexScrollIndex + 1);
+        // 确认键进入详情
+        if (g.input.isConfirmPressed(now) && this.dexPage === 'creature') {
+            const cId = keys[this.dexScrollIndex];
+            if (cm.creatureDex[cId] && cm.creatureDex[cId].encountered) {
+                this.dexDetailMode = true;
+                this.dexDetailId = cId;
+            }
+        }
         if (g.input.isJustPressed('Tab') || g.input.isJustPressed('KeyQ')) { this.dexPage = this.dexPage === 'creature' ? 'npc' : 'creature'; this.dexScrollIndex = 0; }
         if (g.input.isCancelPressed()) this.dexMode = false;
     }
@@ -455,6 +520,12 @@ class ExploreScene extends Scene {
         const ctx = this.game.ctx;
         const W = this.game.W, H = this.game.H;
         const cm = this.game.creaturesManager;
+
+        // 详情页渲染
+        if (this.dexDetailMode && this.dexDetailId != null) {
+            this._renderDexDetail();
+            return;
+        }
 
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.fillRect(0, 0, W, H);
@@ -479,24 +550,26 @@ class ExploreScene extends Scene {
 
         const stats = cm.getDexStats();
         ctx.font = '12px monospace';
-        ctx.font = '12px monospace';
         ctx.fillStyle = '#AAA';
+        ctx.textAlign = 'center';
         ctx.fillText(`精灵: ${stats.encounteredCreatures}/${stats.totalCreatures} 遭遇  ${stats.caughtCreatures} 捕获  |  NPC: ${stats.totalNPCs} 遭遇`, W / 2, 50);
 
         ctx.fillStyle = this.dexPage === 'creature' ? '#FFD700' : '#888';
         ctx.fillText('[Q] 精灵图鉴', W / 4, 70);
         ctx.fillStyle = this.dexPage === 'npc' ? '#FFD700' : '#888';
         ctx.fillText('[Q] NPC图鉴', W * 3 / 4, 70);
+        ctx.textAlign = 'left';
 
+        // 精灵图鉴：展示全部精灵（未发现的显示 ??? 占位）
+        const allCreatureIds = cm.creaturesData.map(c => c.id);
         const dex = this.dexPage === 'creature' ? cm.creatureDex : cm.npcDex;
-        const keys = Object.keys(dex);
+        const keys = this.dexPage === 'creature' ? allCreatureIds : Object.keys(dex);
         const startY = 90, itemHeight = 55;
         const maxVisible = Math.floor((H - startY - 40) / itemHeight);
-        const scrollStart = Math.max(0, this.dexScrollIndex - maxVisible + 1);
+        const scrollStart = Math.max(0, Math.min(this.dexScrollIndex, keys.length - maxVisible));
         const scrollEnd = Math.min(keys.length, scrollStart + maxVisible);
 
         for (let i = scrollStart; i < scrollEnd; i++) {
-            const entry = dex[keys[i]];
             const y = startY + (i - scrollStart) * itemHeight;
             const isSelected = i === this.dexScrollIndex;
             if (isSelected) {
@@ -507,25 +580,47 @@ class ExploreScene extends Scene {
                 ctx.strokeRect(20, y - 5, W - 40, itemHeight - 5);
             }
             if (this.dexPage === 'creature') {
-                const creatureId = parseInt(keys[i]);
-                if (cm.spriteData[creatureId]) cm.renderCreature(ctx, 30, y + 2, 40, creatureId);
-                ctx.textAlign = 'left';
-                ctx.font = 'bold 14px monospace';
-                ctx.fillStyle = '#FFF';
-                ctx.fillText(entry.name, 80, y + 12);
-                const typeColors = { fire:'#F44336', water:'#2196F3', grass:'#4CAF50', electric:'#FFC107', rock:'#795548', dark:'#9C27B0', dragon:'#E91E63', normal:'#9E9E9E' };
-                const typeNames = { fire:'火', water:'水', grass:'草', electric:'电', rock:'岩', dark:'暗', dragon:'龙', normal:'普通' };
-                ctx.fillStyle = typeColors[entry.type] || '#9E9E9E';
-                ctx.font = '11px monospace';
-                ctx.fillText(typeNames[entry.type] || entry.type, 80, y + 28);
-                const rarityNames = { common:'普通', rare:'稀有', legendary:'传说' };
-                const rarityColors = { common:'#AAA', rare:'#2196F3', legendary:'#FFD700' };
-                ctx.fillStyle = rarityColors[entry.rarity] || '#AAA';
-                ctx.fillText(rarityNames[entry.rarity] || entry.rarity, 130, y + 28);
-                ctx.fillStyle = entry.caught ? '#4CAF50' : '#888';
-                ctx.font = '11px monospace';
-                ctx.fillText(entry.caught ? '已捕获' : '已遭遇', W - 90, y + 12);
+                const cId = keys[i];
+                const entry = cm.creatureDex[cId];
+                if (entry && entry.encountered) {
+                    // 已发现：正常显示
+                    if (cm.spriteData[cId]) cm.renderCreature(ctx, 30, y + 2, 40, cId);
+                    ctx.textAlign = 'left';
+                    ctx.font = 'bold 14px monospace';
+                    ctx.fillStyle = '#FFF';
+                    ctx.fillText(`#${cId} ${entry.name}`, 80, y + 12);
+                    const typeColors = { fire:'#F44336', water:'#2196F3', grass:'#4CAF50', electric:'#FFC107', rock:'#795548', dark:'#9C27B0', dragon:'#E91E63', normal:'#9E9E9E' };
+                    const typeNames = { fire:'火', water:'水', grass:'草', electric:'电', rock:'岩', dark:'暗', dragon:'龙', normal:'普通' };
+                    ctx.fillStyle = typeColors[entry.type] || '#9E9E9E';
+                    ctx.font = '11px monospace';
+                    ctx.fillText(typeNames[entry.type] || entry.type, 80, y + 28);
+                    const rarityNames = { common:'普通', rare:'稀有', legendary:'传说' };
+                    const rarityColors = { common:'#AAA', rare:'#2196F3', legendary:'#FFD700' };
+                    ctx.fillStyle = rarityColors[entry.rarity] || '#AAA';
+                    ctx.fillText(rarityNames[entry.rarity] || entry.rarity, 130, y + 28);
+                    ctx.fillStyle = entry.caught ? '#4CAF50' : '#888';
+                    ctx.font = '11px monospace';
+                    ctx.fillText(entry.caught ? '已捕获' : '已遭遇', W - 90, y + 12);
+                } else {
+                    // 未发现：占位显示
+                    ctx.textAlign = 'left';
+                    ctx.font = 'bold 14px monospace';
+                    ctx.fillStyle = '#444';
+                    ctx.fillText(`#${cId} ???`, 80, y + 12);
+                    ctx.font = '11px monospace';
+                    ctx.fillStyle = '#333';
+                    ctx.fillText('未发现', 80, y + 28);
+                    // 占位图标
+                    ctx.fillStyle = '#222';
+                    ctx.fillRect(30, y + 2, 40, 40);
+                    ctx.fillStyle = '#444';
+                    ctx.font = '18px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('?', 50, y + 30);
+                    ctx.textAlign = 'left';
+                }
             } else {
+                const entry = dex[keys[i]];
                 ctx.textAlign = 'left';
                 ctx.font = 'bold 14px monospace';
                 ctx.fillStyle = '#FFF';
@@ -544,7 +639,267 @@ class ExploreScene extends Scene {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#888';
         ctx.font = '12px monospace';
-        ctx.fillText('↑↓浏览  Q切换  ESC关闭', W / 2, H - 15);
+        const hintText = this.dexPage === 'creature' ? '↑↓浏览  确认查看详情  Q切换  ESC关闭' : '↑↓浏览  Q切换  ESC关闭';
+        ctx.fillText(hintText, W / 2, H - 15);
+        ctx.textAlign = 'left';
+    }
+
+    _renderDexDetail() {
+        const ctx = this.game.ctx;
+        const W = this.game.W, H = this.game.H;
+        const cm = this.game.creaturesManager;
+        const entry = cm.creatureDex[this.dexDetailId];
+        const cData = cm.creaturesData.find(c => c.id === this.dexDetailId);
+
+        ctx.fillStyle = 'rgba(0,0,0,0.92)';
+        ctx.fillRect(0, 0, W, H);
+
+        if (!entry || !cData) {
+            ctx.textAlign = 'center'; ctx.fillStyle = '#666'; ctx.font = '14px monospace';
+            ctx.fillText('没有数据', W / 2, H / 2);
+            ctx.fillStyle = '#888'; ctx.font = '12px monospace';
+            ctx.fillText('ESC返回', W / 2, H / 2 + 30);
+            ctx.textAlign = 'left';
+            return;
+        }
+
+        // 返回提示
+        ctx.fillStyle = '#888'; ctx.font = '11px monospace';
+        ctx.fillText('ESC ← 返回', 15, 18);
+
+        // 精灵大图
+        if (cm.spriteData[this.dexDetailId]) {
+            cm.renderCreature(ctx, W / 2 - 50, 40, 100, this.dexDetailId);
+        }
+
+        // 名称 + 编号
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFD700'; ctx.font = 'bold 18px monospace';
+        ctx.fillText(`#${this.dexDetailId} ${entry.name}`, W / 2, 160);
+
+        // 属性标签
+        const typeColors = { fire:'#F44336', water:'#2196F3', grass:'#4CAF50', electric:'#FFC107', rock:'#795548', dark:'#9C27B0', dragon:'#E91E63', normal:'#9E9E9E' };
+        const typeNames = { fire:'火', water:'水', grass:'草', electric:'电', rock:'岩', dark:'暗', dragon:'龙', normal:'普通' };
+        const rarityNames = { common:'普通', rare:'稀有', legendary:'传说' };
+        const rarityColors = { common:'#AAA', rare:'#2196F3', legendary:'#FFD700' };
+
+        ctx.fillStyle = typeColors[entry.type] || '#9E9E9E'; ctx.font = '14px monospace';
+        ctx.fillText(`属性: ${typeNames[entry.type] || entry.type}`, W / 2, 185);
+        ctx.fillStyle = rarityColors[entry.rarity] || '#AAA';
+        ctx.fillText(`稀有度: ${rarityNames[entry.rarity] || entry.rarity}`, W / 2, 205);
+        ctx.fillStyle = entry.caught ? '#4CAF50' : '#888';
+        ctx.fillText(entry.caught ? '已捕获' : '已遭遇', W / 2, 225);
+
+        // 如果已捕获，显示种族值
+        if (entry.caught && cData.baseStats) {
+            ctx.textAlign = 'left';
+            const bx = W / 2 - 80, by = 250;
+            ctx.fillStyle = '#FFD700'; ctx.font = 'bold 13px monospace';
+            ctx.fillText('种族值', bx, by);
+            ctx.font = '12px monospace';
+            const stats = cData.baseStats;
+            const statLabels = { hp:'HP', attack:'攻击', defense:'防御', speed:'速度' };
+            const statColors = { hp:'#4CAF50', attack:'#F44336', defense:'#2196F3', speed:'#FFC107' };
+            let sy = by + 22;
+            for (const [key, label] of Object.entries(statLabels)) {
+                const val = stats[key] || 0;
+                ctx.fillStyle = '#888';
+                ctx.fillText(label, bx, sy);
+                // 数值条
+                ctx.fillStyle = '#333';
+                ctx.fillRect(bx + 45, sy - 10, 120, 10);
+                ctx.fillStyle = statColors[key] || '#9E9E9E';
+                ctx.fillRect(bx + 45, sy - 10, Math.min(120, val * 0.8), 10);
+                ctx.fillStyle = '#FFF';
+                ctx.fillText(`${val}`, bx + 170, sy);
+                sy += 20;
+            }
+            // 总计
+            const total = Object.values(stats).reduce((s, v) => s + v, 0);
+            ctx.fillStyle = '#FFD700'; ctx.font = 'bold 12px monospace';
+            ctx.fillText(`总计: ${total}`, bx, sy + 5);
+        }
+
+        // 招式列表（仅已捕获显示）
+        if (entry.caught && cData.skills) {
+            ctx.textAlign = 'left';
+            const sx = 15, sy2 = H - 80;
+            ctx.fillStyle = '#FFD700'; ctx.font = 'bold 12px monospace';
+            ctx.fillText('可学招式', sx, sy2);
+            ctx.font = '11px monospace';
+            // skills 是 ID 数组，需要从 skillsData 查名称
+            const skillNames = cData.skills.slice(0, 4).map(sId => {
+                const sd = cm.skillsData.find(s => s.id === sId);
+                return sd ? sd.name : '?';
+            });
+            skillNames.forEach((name, i) => {
+                ctx.fillStyle = '#CCC';
+                ctx.fillText(`· ${name}`, sx + (i % 2 === 0 ? 0 : 140), sy2 + 18 + Math.floor(i / 2) * 16);
+            });
+        }
+
+        ctx.textAlign = 'left';
+    }
+
+    // ========== 徽章面板 ==========
+    _updateBadgePanel(now) {
+        const g = this.game;
+        if (g.input.hasPendingClick()) {
+            const click = g.input.getClick();
+            if (click) {
+                // 返回按钮
+                const backBtnW = 50, backBtnH = 22;
+                const backBtnX = g.W - backBtnW - 10, backBtnY = 8;
+                if (click.x >= backBtnX && click.x <= backBtnX + backBtnW &&
+                    click.y >= backBtnY && click.y <= backBtnY + backBtnH) { this.badgeMode = false; return; }
+            }
+        }
+        if (g.input.isCancelPressed()) this.badgeMode = false;
+    }
+
+    _renderBadgePanel() {
+        const ctx = this.game.ctx;
+        const W = this.game.W, H = this.game.H;
+        const cm = this.game.creaturesManager;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, W, H);
+
+        // 标题
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 20px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('道馆徽章', W / 2, 30);
+
+        // 返回按钮
+        const backBtnW = 50, backBtnH = 22;
+        const backBtnX = W - backBtnW - 10, backBtnY = 8;
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+        ctx.fillRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('← 返回', backBtnX + backBtnW / 2, backBtnY + 15);
+        ctx.textAlign = 'left';
+
+        // 调用 CreaturesManager 内置的徽章面板渲染
+        cm.renderBadgePanel(ctx, 30, 55, W - 60);
+    }
+
+    // ========== 任务面板 ==========
+    _updateQuestPanel(now) {
+        const g = this.game;
+        const quests = g.quests || {};
+        const questKeys = Object.keys(quests);
+        const maxVisible = 8;
+
+        if (g.input.hasPendingClick()) {
+            const click = g.input.getClick();
+            if (click) {
+                // 返回按钮
+                const backBtnW = 50, backBtnH = 22;
+                const backBtnX = g.W - backBtnW - 10, backBtnY = 8;
+                if (click.x >= backBtnX && click.x <= backBtnX + backBtnW &&
+                    click.y >= backBtnY && click.y <= backBtnY + backBtnH) { this.questMode = false; return; }
+            }
+        }
+        if (g.input.isJustPressed('ArrowUp') || g.input.isJustPressed('KeyW')) this.questScrollIndex = Math.max(0, this.questScrollIndex - 1);
+        if (g.input.isJustPressed('ArrowDown') || g.input.isJustPressed('KeyS')) this.questScrollIndex = Math.min(questKeys.length - 1, this.questScrollIndex + 1);
+        if (g.input.isCancelPressed()) this.questMode = false;
+    }
+
+    _renderQuestPanel() {
+        const ctx = this.game.ctx;
+        const W = this.game.W, H = this.game.H;
+        const g = this.game;
+        const quests = g.quests || {};
+        const questKeys = Object.keys(quests);
+
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, W, H);
+
+        // 标题
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 20px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('任务日志', W / 2, 30);
+
+        // 返回按钮
+        const backBtnW = 50, backBtnH = 22;
+        const backBtnX = W - backBtnW - 10, backBtnY = 8;
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.15)';
+        ctx.fillRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(backBtnX, backBtnY, backBtnW, backBtnH);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('← 返回', backBtnX + backBtnW / 2, backBtnY + 15);
+        ctx.textAlign = 'left';
+
+        // 统计
+        const active = questKeys.filter(k => quests[k] === 'active').length;
+        const completed = questKeys.filter(k => quests[k] === 'completed').length;
+        ctx.font = '12px monospace';
+        ctx.fillStyle = '#AAA';
+        ctx.textAlign = 'center';
+        ctx.fillText(`进行中: ${active}  已完成: ${completed}`, W / 2, 52);
+        ctx.textAlign = 'left';
+
+        if (questKeys.length === 0) {
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#666';
+            ctx.font = '14px monospace';
+            ctx.fillText('暂无任务记录', W / 2, H / 2);
+        } else {
+            const startY = 70;
+            const itemH = 40;
+            const maxVisible = Math.floor((H - startY - 30) / itemH);
+            const scrollStart = Math.max(0, Math.min(this.questScrollIndex, questKeys.length - maxVisible));
+            const scrollEnd = Math.min(questKeys.length, scrollStart + maxVisible);
+
+            for (let i = scrollStart; i < scrollEnd; i++) {
+                const qId = questKeys[i];
+                const status = quests[qId];
+                const y = startY + (i - scrollStart) * itemH;
+                const isSelected = i === this.questScrollIndex;
+
+                if (isSelected) {
+                    ctx.fillStyle = 'rgba(255,215,0,0.1)';
+                    ctx.fillRect(20, y, W - 40, itemH - 4);
+                    ctx.strokeStyle = 'rgba(255,215,0,0.4)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(20, y, W - 40, itemH - 4);
+                }
+
+                // 任务 ID（截短显示）
+                ctx.font = 'bold 13px monospace';
+                ctx.fillStyle = '#FFF';
+                ctx.textAlign = 'left';
+                ctx.fillText(qId.length > 20 ? qId.substring(0, 20) + '...' : qId, 35, y + 18);
+
+                // 状态标签
+                const isActive = status === 'active';
+                const isCompleted = status === 'completed';
+                ctx.font = '11px monospace';
+                if (isCompleted) {
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.fillText('已完成', W - 100, y + 18);
+                } else if (isActive) {
+                    ctx.fillStyle = '#FFC107';
+                    ctx.fillText('进行中', W - 100, y + 18);
+                }
+            }
+        }
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#888';
+        ctx.font = '12px monospace';
+        ctx.fillText('↑↓浏览  ESC关闭', W / 2, H - 12);
         ctx.textAlign = 'left';
     }
 
@@ -641,6 +996,11 @@ class ExploreScene extends Scene {
     _onBattleEnd(result) {
         const g = this.game;
         try {
+            // 从 engine.state 读取战斗信息（BattleManager 不直接持有这些属性）
+            const battleState = g.battleManager.engine?.state;
+            const battleType = battleState?.battleType || 'wild';
+            const trainerNPC = g.battleManager.trainerNPC || battleState?.trainerNPC || null;
+
             if (result === 'lose') {
                 g.mapManager.switchMap('town1');
                 const map = g.mapManager.getCurrentMap();
@@ -650,10 +1010,22 @@ class ExploreScene extends Scene {
                 g.camera.snapTo(g.player.x, g.player.y, g.player.width, g.player.height, map.width * g.mapManager.tileSize, map.height * g.mapManager.tileSize);
                 g.ui.showMessage('你的精灵已经恢复了...');
             }
-            if (result === 'win' && g.battleManager.battleType === 'trainer' && g.battleManager.trainerNPC) {
-                g.npcManager.markTrainerDefeated(g.battleManager.trainerNPC.id);
+            if (result === 'win' && battleType === 'trainer' && trainerNPC) {
+                g.npcManager.markTrainerDefeated(trainerNPC.id);
                 if (!g.creaturesManager.defeatedTrainers) g.creaturesManager.defeatedTrainers = [];
-                if (!g.creaturesManager.defeatedTrainers.includes(g.battleManager.trainerNPC.id)) g.creaturesManager.defeatedTrainers.push(g.battleManager.trainerNPC.id);
+                if (!g.creaturesManager.defeatedTrainers.includes(trainerNPC.id)) g.creaturesManager.defeatedTrainers.push(trainerNPC.id);
+
+                // 道馆馆主胜利 → 颁发徽章
+                if (g.currentBattleType === 'gym' && g.gymBadgeId) {
+                    const awarded = g.creaturesManager.awardBadge(g.gymBadgeId);
+                    if (awarded) {
+                        const badgeDef = CreaturesManager.GYM_DEFINITIONS.find(b => b.id === g.gymBadgeId);
+                        g.ui.showMessage(`🏆 获得了${badgeDef ? badgeDef.name : '徽章'}！`);
+                    }
+                    g.currentBattleType = null;
+                    g.gymLeaderId = null;
+                    g.gymBadgeId = null;
+                }
             }
             if (result === 'catch_success') g.creaturesManager.recordCreatureCaught(g.battleManager.caughtCreatureId || 0);
             try { g.saveManager.save(g); } catch (e) { console.error('自动保存失败:', e); }

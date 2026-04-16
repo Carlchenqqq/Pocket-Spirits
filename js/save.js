@@ -59,6 +59,10 @@ class SaveManager {
             gold: cm.gold,
             // 标记
             starterChosen: cm.starterChosen,
+            // 道馆徽章
+            badges: cm.badges || [],
+            // 任务进度
+            quests: gameManager.quests || {},
             // 已击败的训练师
             defeatedTrainers: cm.defeatedTrainers || [],
             // 图鉴数据
@@ -116,6 +120,10 @@ class SaveManager {
             // 恢复图鉴
             cm.creatureDex = data.creatureDex || {};
             cm.npcDex = data.npcDex || {};
+            // 恢复道馆徽章
+            cm.badges = data.badges || [];
+            // 恢复任务进度
+            gameManager.quests = data.quests || {};
 
             // 切换地图
             gameManager.mapManager.switchMap(data.currentMapId);

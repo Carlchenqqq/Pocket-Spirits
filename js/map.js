@@ -450,7 +450,7 @@ class MapManager {
                 { id: 'gym_leader_rock', x: 14, y: 4, type: 'gym_leader', name: '道馆馆主·岩铁',
                   dialogs: ['我是碧波道馆的馆主岩铁！', '我的岩石精灵坚不可摧！', '想挑战我的话，先击败3个训练师吧！'],
                   creatures: [{ creatureId: 11, level: 12 }, { creatureId: 5, level: 10 }, { creatureId: 21, level: 14 }],
-                  defeated: false, reward: 500
+                  defeated: false, reward: 500, badgeId: 'stone_badge'
                 },
                 { id: 'rival_town2', x: 5, y: 11, type: 'rival', name: '宿敌·阿雷',
                   dialogs: ['哈哈！你终于追上来了？', '我已经获得了岩石徽章！', '...开玩笑的，我也刚到。'],

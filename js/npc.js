@@ -199,6 +199,7 @@ class NPCManager {
                 // 道馆战标记
                 gameManager.currentBattleType = 'gym';
                 gameManager.gymLeaderId = npc.id;
+                gameManager.gymBadgeId = npc.badgeId || null;
                 gameManager.startTrainerBattle(npc, leaderParty);
             }
         });
