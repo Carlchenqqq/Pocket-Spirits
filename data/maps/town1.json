@@ -1,9 +1,12 @@
 {
-  "id": "town1",
+  "id": "qingye_town",
   "name": "青叶镇",
   "width": 20,
   "height": 15,
   "tileSize": 32,
+  "type": "town",
+  "region": "中州南部",
+  "chapter": 1,
   "playerStart": {
     "x": 10,
     "y": 9
@@ -12,51 +15,75 @@
     {
       "x": 10,
       "y": 14,
-      "targetMap": "wild",
-      "targetX": 15,
-      "targetY": 1
+      "targetMap": "route_001",
+      "targetX": 2,
+      "targetY": 9
     },
     {
       "x": 11,
       "y": 14,
-      "targetMap": "wild",
-      "targetX": 16,
-      "targetY": 1
+      "targetMap": "route_001",
+      "targetX": 3,
+      "targetY": 9
     }
   ],
   "npcs": [
     {
-      "id": "professor",
+      "id": "npc_mo_bo_shi",
       "x": 10,
       "y": 6,
       "type": "professor",
-      "name": "精灵博士",
+      "name": "墨博士",
       "dialogs": [
         "欢迎来到精灵纪元的世界！",
-        "我是精灵博士，研究精灵的学者。",
-        "请选择你的初始精灵伙伴吧！"
+        "我是墨博士，研究灵兽的学者。",
+        "你今天16岁了，可以领取第一只灵兽了！",
+        "来，从这三只灵兽中选择一只作为你的伙伴吧。"
       ]
     },
     {
-      "id": "town1_girl",
+      "id": "npc_mother",
+      "x": 4,
+      "y": 4,
+      "type": "dialog",
+      "name": "芸娘",
+      "dialogs": [
+        "孩子，出门在外要小心啊。",
+        "记得常回来看看妈妈。",
+        "路上遇到危险，先保护好自己的精灵伙伴！"
+      ]
+    },
+    {
+      "id": "villager_01",
       "x": 4,
       "y": 10,
       "type": "dialog",
-      "name": "小镇女孩",
+      "name": "张大妈",
       "dialogs": [
-        "南边的草丛里有很多精灵哦！",
-        "小心别迷路了~"
+        "我家小明也去当灵师了，也不知道在外面怎么样…",
+        "小心路上啊。"
       ]
     },
     {
-      "id": "town1_boy",
+      "id": "villager_02",
       "x": 16,
       "y": 10,
       "type": "dialog",
-      "name": "小镇男孩",
+      "name": "小明的小伙伴",
       "dialogs": [
-        "听说碧波镇有个很强的训练师！",
-        "往南走就能到野外了。"
+        "听说碧波镇那边最近有怪事发生！",
+        "往东走就能到青叶野外了。"
+      ]
+    },
+    {
+      "id": "villager_03",
+      "x": 7,
+      "y": 12,
+      "type": "dialog",
+      "name": "钓鱼大爷",
+      "dialogs": [
+        "这河里的鱼越来越少了…",
+        "年轻人，去外面闯荡吧。"
       ]
     }
   ],

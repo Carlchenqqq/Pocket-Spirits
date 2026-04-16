@@ -1,0 +1,162 @@
+{
+  "id": "yanyang_city",
+  "name": "炎阳城",
+  "width": 24,
+  "height": 18,
+  "tileSize": 32,
+  "type": "town",
+  "region": "中州西部",
+  "chapter": 3,
+  "playerStart": {
+    "x": 12,
+    "y": 16
+  },
+  "transfers": [
+    {
+      "x": 12,
+      "y": 17,
+      "targetMap": "redrock_path",
+      "targetX": 26,
+      "targetY": 8
+    },
+    {
+      "x": 13,
+      "y": 17,
+      "targetMap": "redrock_path",
+      "targetX": 26,
+      "targetY": 9
+    },
+    {
+      "x": 4,
+      "y": 8,
+      "targetMap": "abandoned_mine",
+      "targetX": 1,
+      "targetY": 7
+    },
+    {
+      "x": 4,
+      "y": 9,
+      "targetMap": "abandoned_mine",
+      "targetX": 1,
+      "targetY": 8
+    }
+  ],
+  "npcs": [
+    {
+      "id": "gym_leader_yan_lie",
+      "x": 12,
+      "y": 4,
+      "type": "gym_leader",
+      "name": "道馆馆主·炎烈",
+      "dialogs": [
+        "我是炎阳道馆的馆主炎烈！",
+        "火焰！就是力量的象征！",
+        "你的精灵够热血吗？",
+        "来，用你的全力战斗！"
+      ],
+      "defeatDialogs": [
+        "哈哈！好！你的热血让我感受到了！",
+        "来，这是烈阳徽章！你赢得了它！",
+        "如果你要去废弃矿坑，我和你同行！"
+      ],
+      "creatures": [
+        {"creatureId": 4, "level": 20},
+        {"creatureId": 20, "level": 22},
+        {"creatureId": 6, "level": 24}
+      ],
+      "defeated": false,
+      "reward": 1000,
+      "badgeId": "yanyang_badge",
+      "badgeName": "烈阳徽章"
+    },
+    {
+      "id": "merchant_ball",
+      "x": 7,
+      "y": 6,
+      "type": "shop",
+      "name": "球匠阿牛",
+      "dialogs": [
+        "欢迎！专业的精灵球就来我这里！",
+        "超级灵球、速攻球，应有尽有！"
+      ]
+    },
+    {
+      "id": "heal_npc_yanyang",
+      "x": 18,
+      "y": 13,
+      "type": "healer",
+      "name": "杏林医仙",
+      "dialogs": [
+        "你的精灵恢复了！",
+        "小心废弃矿坑里的浊流成员。"
+      ]
+    },
+    {
+      "id": "npc_old_worker",
+      "x": 6,
+      "y": 12,
+      "type": "dialog",
+      "name": "老矿工阿福",
+      "dialogs": [
+        "那个废弃矿坑以前是我工作的地方…",
+        "自从浊流占领后，我们就被赶出来了。",
+        "那里面不知道在搞什么名堂，晚上还有奇怪的声音！"
+      ]
+    },
+    {
+      "id": "npc_townsman",
+      "x": 20,
+      "y": 8,
+      "type": "dialog",
+      "name": "城镇居民",
+      "dialogs": [
+        "炎阳城因火系灵兽而闻名！",
+        "道馆馆主炎烈是我们的骄傲！",
+        "听说南边的赤岩古道最近有浊流出没，小心点。"
+      ]
+    }
+  ],
+  "wildCreatures": [],
+  "layers": {
+    "tiles": [
+      ["tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree"],
+      ["tree","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","tree"],
+      ["tree","grass","roof","roof","roof","roof","grass","grass","roof","roof","roof","roof","roof","grass","grass","roof","roof","roof","roof","grass","grass","grass","grass","tree"],
+      ["tree","grass","house","house","house","house","grass","grass","house","house","house","house","house","grass","grass","house","house","house","house","grass","grass","grass","grass","tree"],
+      ["tree","grass","house","house","door","house","grass","grass","house","house","house","house","house","grass","grass","house","house","door","house","grass","grass","grass","grass","tree"],
+      ["tree","grass","grass","flower1","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","flower1","grass","grass","grass","grass","grass","grass","tree"],
+      ["tree","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","tree"],
+      ["path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path"],
+      ["path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path"],
+      ["tree","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","tree"],
+      ["tree","grass","roof","roof","roof","grass","grass","grass","grass","roof","roof","roof","roof","roof","grass","grass","grass","grass","grass","roof","roof","roof","grass","tree"],
+      ["tree","grass","house","house","house","grass","grass","grass","grass","house","house","house","house","house","grass","grass","grass","grass","grass","house","house","house","grass","tree"],
+      ["tree","grass","house","house","door","grass","grass","grass","grass","house","house","house","house","house","grass","grass","grass","grass","grass","house","house","door","grass","tree"],
+      ["tree","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","tree"],
+      ["tree","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","tree"],
+      ["tree","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","tree"],
+      ["tree","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","grass","path","path","grass","grass","grass","grass","grass","grass","grass","grass","grass","tree"],
+      ["tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree","path","path","tree","tree","tree","tree","tree","tree","tree","tree","tree","tree"]
+    ],
+    "collision": [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,0,0,0,0,1],
+      [1,0,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,0,0,0,0,1],
+      [1,0,1,1,0,1,0,0,1,1,1,1,1,0,0,1,1,0,1,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [3,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,0,1,1,1,0,1],
+      [1,0,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,0,1,1,1,0,1],
+      [1,0,1,1,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,1,1,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1]
+    ]
+  }
+}

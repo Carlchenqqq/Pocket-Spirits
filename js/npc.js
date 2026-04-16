@@ -61,8 +61,17 @@ class NPCManager {
             case 'rival':
                 this._handleRival(npc, gameManager);
                 break;
+            case 'key':
+                // 关键剧情NPC（如灵渊长者）
+                this._handleKeyNPC(npc, gameManager);
+                break;
             default:
-                this._handleDialog(npc, gameManager);
+                // isItem 标记的NPC当作物品拾取
+                if (npc.isItem) {
+                    this._handleItemPickup(npc, gameManager);
+                } else {
+                    this._handleDialog(npc, gameManager);
+                }
         }
     }
 
@@ -288,6 +297,51 @@ class NPCManager {
                 npc.direction = dirs[Math.floor(Math.random() * dirs.length)];
             }
         }
+    }
+
+    /** 处理关键剧情NPC（如灵渊长者、特殊对话触发者） */
+    _handleKeyNPC(npc, gameManager) {
+        gameManager.creaturesManager.recordNPCEncounter(npc.id, npc.name, npc.type);
+
+        // 检查条件对话（如持有灵晶碎片才有特殊对话）
+        let dialogs = npc.dialogs || ['...'];
+        if (npc.dialogConditions) {
+            for (const [condition, condDialogs] of Object.entries(npc.dialogConditions)) {
+                // hasSpiritCrystals: 检查是否有三块灵晶碎片
+                if (condition === 'hasSpiritCrystals' && gameManager.quests) {
+                    const crystals = ['spirit_crystal_south', 'spirit_crystal_east', 'spirit_crystal_west'];
+                    const allHave = crystals.every(id => gameManager.quests[id] === 'collected');
+                    if (allHave) {
+                        dialogs = [...dialogs, ...condDialogs];
+                    }
+                }
+            }
+        }
+
+        gameManager.ui.showDialog(dialogs);
+        gameManager.setState('DIALOG');
+    }
+
+    /** 处理物品拾取NPC（如灵晶碎片道具事件） */
+    _handleItemPickup(npc, gameManager) {
+        gameManager.creaturesManager.recordNPCEncounter(npc.id, npc.name, npc.type);
+
+        const itemId = npc.itemId;
+        // 已经拾取过的不再给
+        if (itemId && gameManager.quests && gameManager.quests[itemId] === 'collected') {
+            gameManager.ui.showDialog(['（这里已经没有什么了…）']);
+            gameManager.setState('DIALOG');
+            return;
+        }
+
+        gameManager.ui.showDialog(npc.dialogs || ['获得了道具！'], () => {
+            if (itemId) {
+                if (!gameManager.quests) gameManager.quests = {};
+                gameManager.quests[itemId] = 'collected';
+                gameManager.ui.showMessage(`获得了 ${npc.name}！`);
+            }
+        });
+        gameManager.setState('DIALOG');
     }
 
     /** 标记训练师为已击败 */

@@ -1,9 +1,12 @@
 {
-  "id": "town2",
+  "id": "bibo_town",
   "name": "碧波镇",
   "width": 20,
   "height": 15,
   "tileSize": 32,
+  "type": "town",
+  "region": "中州南部",
+  "chapter": 1,
   "playerStart": {
     "x": 2,
     "y": 7
@@ -12,16 +15,58 @@
     {
       "x": 0,
       "y": 7,
-      "targetMap": "wild",
+      "targetMap": "bibo_forest",
       "targetX": 28,
       "targetY": 10
     },
     {
       "x": 0,
       "y": 8,
-      "targetMap": "wild",
+      "targetMap": "bibo_forest",
       "targetX": 28,
       "targetY": 11
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "targetMap": "mist_marsh",
+      "targetX": 11,
+      "targetY": 18
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "targetMap": "mist_marsh",
+      "targetX": 12,
+      "targetY": 18
+    },
+    {
+      "x": 10,
+      "y": 14,
+      "targetMap": "reef_route",
+      "targetX": 1,
+      "targetY": 8
+    },
+    {
+      "x": 11,
+      "y": 14,
+      "targetMap": "reef_route",
+      "targetX": 1,
+      "targetY": 9
+    },
+    {
+      "x": 19,
+      "y": 7,
+      "targetMap": "redrock_path",
+      "targetX": 1,
+      "targetY": 8
+    },
+    {
+      "x": 19,
+      "y": 8,
+      "targetMap": "redrock_path",
+      "targetX": 1,
+      "targetY": 9
     }
   ],
   "npcs": [
@@ -30,59 +75,76 @@
       "x": 7,
       "y": 6,
       "type": "shop",
-      "name": "商店店员",
-      "dialogs": ["欢迎光临！需要什么道具吗？"]
+      "name": "货郎老黄",
+      "dialogs": ["欢迎光临！需要什么道具吗？", "灵球、药水，应有尽有！"]
     },
     {
       "id": "heal_npc",
       "x": 10,
       "y": 13,
       "type": "healer",
-      "name": "精灵中心护士",
-      "dialogs": ["你的精灵已经恢复健康了！", "随时欢迎回来~"]
+      "name": "杏林医仙",
+      "dialogs": ["你的精灵已经恢复健康了！", "随时欢迎回来~", "保护好你的伙伴哦。"]
     },
     {
-      "id": "town2_man",
+      "id": "villager_04",
       "x": 15,
       "y": 7,
       "type": "dialog",
-      "name": "镇民",
-      "dialogs": ["碧波镇的道馆馆主非常厉害！", "建议先在野外多训练一下。"]
+      "name": "港口船夫",
+      "dialogs": ["海上的浪最近特别大，不知道怎么回事。", "想出海的话，先找馆主拿推荐信吧。"]
     },
     {
-      "id": "gym_leader_rock",
+      "id": "villager_05",
+      "x": 5,
+      "y": 11,
+      "type": "dialog",
+      "name": "游客少女",
+      "dialogs": ["碧波镇的夜景真的太美了！", "这里的水系精灵也好可爱！"]
+    },
+    {
+      "id": "gym_leader_lan_xi",
       "x": 14,
       "y": 4,
       "type": "gym_leader",
-      "name": "道馆馆主·岩铁",
-      "dialogs": ["我是碧波道馆的馆主岩铁！", "我的岩石精灵坚不可摧！", "想挑战我的话，先击败3个训练师吧！"],
-      "creatures": [{"creatureId": 11, "level": 12}, {"creatureId": 5, "level": 10}, {"creatureId": 21, "level": 14}],
+      "name": "道馆馆主·澜汐",
+      "dialogs": [
+        "我是碧波道馆的馆主澜汐。",
+        "水，看似柔弱，实则包容万物。",
+        "你已经做好挑战的准备了吗？",
+        "击败我，就能获得碧波徽章！"
+      ],
+      "creatures": [
+        {"creatureId": 16, "level": 10},
+        {"creatureId": 18, "level": 12},
+        {"creatureId": 3, "level": 14}
+      ],
       "defeated": false,
-      "reward": 500,
-      "badgeName": "岩石徽章"
+      "reward": 600,
+      "badgeId": "bibo_badge",
+      "badgeName": "碧波徽章"
     },
     {
-      "id": "rival_town2",
-      "x": 5,
-      "y": 11,
-      "type": "rival",
-      "name": "宿敌·阿雷",
-      "dialogs": ["哈哈！你终于追上来了？", "我已经获得了岩石徽章！", "...开玩笑的，我也刚到。"],
-      "defeatDialogs": ["可恶...这次算你赢了！", "下次绝对不会输给你！"],
-      "creatures": [{"creatureId": 10, "level": 8}, {"creatureId": 22, "level": 9}],
-      "defeated": false,
-      "reward": 200
-    },
-    {
-      "id": "quest_giver_1",
+      "id": "npc_lang_disguised",
       "x": 18,
       "y": 11,
-      "type": "quest_giver",
-      "name": "探险家老王",
-      "questDesc": "帮我在野外洞穴收集3只暗影蝠的数据。",
+      "type": "trainer",
+      "name": "神秘训练师·浪",
+      "dialogs": [
+        "哦？你是墨博士的学生？",
+        "有趣…让我看看你的实力。"
+      ],
+      "defeatDialogs": [
+        "啧…没想到这小鬼不好对付。",
+        "不过这只是开始，小鬼。后会无期！"
+      ],
+      "creatures": [
+        {"creatureId": 16, "level": 8},
+        {"creatureId": 14, "level": 9}
+      ],
+      "defeated": false,
       "reward": 300,
-      "questId": "collect_bats",
-      "dialogs": ["我是研究野生精灵的学者...", "你能帮我采集一些数据吗？"]
+      "isPlotBattle": true
     }
   ],
   "layers": {
@@ -430,8 +492,8 @@
         1,
         1,
         1,
-        1,
-        1,
+        3,
+        3,
         1,
         1,
         1,
@@ -593,7 +655,7 @@
         0,
         0,
         0,
-        0
+        3
       ],
       [
         3,
@@ -615,7 +677,7 @@
         0,
         0,
         0,
-        0
+        3
       ],
       [
         1,
@@ -738,8 +800,8 @@
         1,
         1,
         1,
-        1,
-        1,
+        3,
+        3,
         1,
         1,
         1,

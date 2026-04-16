@@ -30,6 +30,11 @@ class ExploreScene extends Scene {
         this.questMode = false;
         this.questScrollIndex = 0;
 
+        // 地图传送面板模式
+        this.mapPanelMode = false;
+        this.mapPanelIndex = 0;
+        this._worldMapCache = null; // 世界地图缩略图缓存
+
         // 自动移动
         this.isAutoMoving = false;
         this.moveTarget = null;
@@ -55,6 +60,7 @@ class ExploreScene extends Scene {
         this.dexMode = false;
         this.badgeMode = false;
         this.questMode = false;
+        this.mapPanelMode = false;
         this.isAutoMoving = false;
         this.moveTarget = null;
     }
@@ -84,6 +90,10 @@ class ExploreScene extends Scene {
             this._updateQuestPanel(now);
             return;
         }
+        if (this.mapPanelMode) {
+            this._updateMapPanel(now);
+            return;
+        }
 
         // ESC或点击菜单按钮打开菜单
         if (g.input.isCancelPressed()) {
@@ -100,6 +110,15 @@ class ExploreScene extends Scene {
                     g.input.getClick();
                     this.gameMenuOpen = true;
                     this.gameMenuIndex = 0;
+                    return;
+                }
+                // 地图按钮（左下角）
+                const mapBtnX = 8, mapBtnY = g.H - 40, mapBtnW = 40, mapBtnH = 30;
+                if (pendingClick.x >= mapBtnX && pendingClick.x <= mapBtnX + mapBtnW &&
+                    pendingClick.y >= mapBtnY && pendingClick.y <= mapBtnY + mapBtnH) {
+                    g.input.getClick();
+                    this.mapPanelMode = true;
+                    this.mapPanelIndex = 0;
                     return;
                 }
             }
@@ -209,6 +228,7 @@ class ExploreScene extends Scene {
         if (this.dexMode) this._renderDex();
         if (this.badgeMode) this._renderBadgePanel();
         if (this.questMode) this._renderQuestPanel();
+        if (this.mapPanelMode) this._renderMapPanel();
     }
 
     // ========== 游戏菜单 ==========
@@ -1002,7 +1022,9 @@ class ExploreScene extends Scene {
             const trainerNPC = g.battleManager.trainerNPC || battleState?.trainerNPC || null;
 
             if (result === 'lose') {
-                g.mapManager.switchMap('town1');
+                // 战败回青叶镇（优先新ID，兼容旧ID）
+                const homeMap = g.mapManager.maps['qingye_town'] ? 'qingye_town' : 'town1';
+                g.mapManager.switchMap(homeMap);
                 const map = g.mapManager.getCurrentMap();
                 g.player.setPosition(map.playerStart.x, map.playerStart.y);
                 g.npcManager.loadNPCs(map.npcs);
@@ -1068,5 +1090,537 @@ class ExploreScene extends Scene {
                 if (!g.player.tryMove(altDir, g.mapManager, g.npcManager)) { this.isAutoMoving = false; this.moveTarget = null; }
             } else { this.isAutoMoving = false; this.moveTarget = null; }
         }
+    }
+
+    // ========== 地图传送面板（世界总览图） ==========
+    /**
+     * 世界地图布局定义 - V1完整10张地图（卡片式连接图）
+     *
+     * 连接拓扑：
+     *   青叶镇 ↔ 青叶野外 ↔ 碧波森林 ↔ 碧波镇 ↔ 迷雾沼泽
+     *                                               ↔ 礁石航道
+     *                                               ↔ 赤岩古道 ↔ 炎阳城 ↔ 废弃矿坑
+     *                                               ↔ 灵渊居秘室
+     */
+    _getWorldMapLayout() {
+        return {
+            mapIds: [
+                'qingye_town', 'route_001', 'bibo_forest', 'bibo_town',
+                'mist_marsh', 'reef_route', 'redrock_path', 'lingyuan_chamber',
+                'yanyang_city', 'abandoned_mine'
+            ],
+            // 卡片中心位置（相对于世界画布左上角的像素坐标，由 _buildWorldMapCardLayout 计算填充）
+            nodes: null, // 运行时由 _buildWorldMapCardLayout() 填充
+            // 卡片尺寸
+            cardW: 96,
+            cardH: 48,
+            // 去重后的连接边（from → to，无向）
+            edges: [
+                { from: 'qingye_town', to: 'route_001' },
+                { from: 'route_001', to: 'bibo_forest' },
+                { from: 'bibo_forest', to: 'bibo_town' },
+                { from: 'bibo_town', to: 'mist_marsh' },
+                { from: 'bibo_town', to: 'reef_route' },
+                { from: 'bibo_town', to: 'redrock_path' },
+                { from: 'bibo_town', to: 'lingyuan_chamber' },
+                { from: 'route_001', to: 'bibo_town' },
+                { from: 'redrock_path', to: 'yanyang_city' },
+                { from: 'yanyang_city', to: 'abandoned_mine' }
+            ]
+        };
+    }
+
+    /**
+     * 计算每张地图卡片的像素坐标（自动布局）
+     * 根据地图真实连接关系，自动分层排列
+     * 返回 { nodes: { mapId: { x, y } }, canvasW, canvasH }
+     */
+    _buildWorldMapCardLayout() {
+        const layout = this._getWorldMapLayout();
+        if (layout.nodes) return layout;
+
+        const CW = layout.cardW, CH = layout.cardH;
+        const GAP_X = 70, GAP_Y = 64; // 卡片之间的间距
+
+        // 定义每个节点的层和列（手动指定以获得最佳视觉效果）
+        // 层(layer)决定垂直位置，列决定水平位置
+        const positions = {
+            'qingye_town':      { layer: 0, col: 0 },
+            'route_001':        { layer: 0, col: 1 },
+            'bibo_forest':      { layer: 0, col: 2 },
+            'bibo_town':        { layer: 0, col: 3 },
+            'mist_marsh':       { layer: 1, col: 3 },
+            'reef_route':       { layer: 1, col: 4 },
+            'redrock_path':     { layer: 2, col: 3 },
+            'lingyuan_chamber': { layer: 2, col: 4 },
+            'yanyang_city':     { layer: 3, col: 3 },
+            'abandoned_mine':   { layer: 4, col: 3 }
+        };
+
+        // 计算最大层数和每层的最大列
+        let maxLayer = 0;
+        const layerMaxCols = {};
+        for (const [id, pos] of Object.entries(positions)) {
+            maxLayer = Math.max(maxLayer, pos.layer);
+            if (!layerMaxCols[pos.layer]) layerMaxCols[pos.layer] = 0;
+            layerMaxCols[pos.layer] = Math.max(layerMaxCols[pos.layer], pos.col);
+        }
+
+        const MARGIN = 20;
+        const nodes = {};
+
+        for (const [id, pos] of Object.entries(positions)) {
+            // 计算该层的基础X偏移，使该层水平居中
+            const layerWidth = layerMaxCols[pos.layer] * (CW + GAP_X);
+            const layerOffsetX = MARGIN - (layerWidth / 2) + (pos.col * (CW + GAP_X));
+            // 向右偏移以补偿居中对齐
+            const baseX = MARGIN + (pos.col * (CW + GAP_X));
+            const baseY = MARGIN + (pos.layer * (CH + GAP_Y));
+
+            nodes[id] = { x: baseX, y: baseY };
+        }
+
+        const canvasW = MARGIN * 2 + 4 * (CW + GAP_X);
+        const canvasH = MARGIN * 2 + maxLayer * (CH + GAP_Y) + CH;
+
+        layout.nodes = nodes;
+        layout.canvasW = canvasW;
+        layout.canvasH = canvasH;
+
+        return layout;
+    }
+
+    /** 道馆传送点定义（只有这些城镇可点击传送） */
+    _getTeleportPoints() {
+        return [
+            { id: 'bibo_town',    name: '碧波镇',  badgeId: null,           badgeName: '（起始可达）',  leaderName: '澜汐' },
+            { id: 'yanyang_city', name: '炎阳城',  badgeId: 'bibo_badge',   badgeName: '碧波徽章',     leaderName: '炎烈' }
+        ];
+    }
+
+    /** 地图类型配置（颜色+标签） */
+    _getMapTypeConfig(type) {
+        const configs = {
+            town:    { label: '城镇', color: '#FFD700', bg: 'rgba(255,215,0,0.12)', border: 'rgba(255,215,0,0.5)' },
+            route:   { label: '道路', color: '#81C784', bg: 'rgba(129,199,132,0.10)', border: 'rgba(129,199,132,0.4)' },
+            dungeon: { label: '副本', color: '#E57373', bg: 'rgba(229,115,115,0.10)', border: 'rgba(229,115,115,0.4)' },
+            special: { label: '秘境', color: '#CE93D8', bg: 'rgba(206,147,216,0.10)', border: 'rgba(206,147,216,0.4)' }
+        };
+        return configs[type] || configs.route;
+    }
+
+    /**
+     * 预渲染卡片式世界地图（大画布）
+     */
+    _getWorldMapThumbnail() {
+        if (this._worldMapCache) return this._worldMapCache;
+
+        const g = this.game;
+        const layout = this._buildWorldMapCardLayout();
+        if (!layout.nodes) return null;
+
+        const CW = layout.cardW, CH = layout.cardH;
+        const { canvasW, canvasH, nodes, edges } = layout;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = canvasW;
+        offCanvas.height = canvasH;
+        const octx = offCanvas.getContext('2d');
+
+        // 深色背景
+        octx.fillStyle = '#12141f';
+        octx.fillRect(0, 0, canvasW, canvasH);
+
+        // 微妙网格
+        octx.strokeStyle = 'rgba(255,255,255,0.03)';
+        octx.lineWidth = 1;
+        for (let x = 0; x < canvasW; x += 20) {
+            octx.beginPath(); octx.moveTo(x, 0); octx.lineTo(x, canvasH); octx.stroke();
+        }
+        for (let y = 0; y < canvasH; y += 20) {
+            octx.beginPath(); octx.moveTo(0, y); octx.lineTo(canvasW, y); octx.stroke();
+        }
+
+        // 绘制连接线（先画线，再画卡片覆盖在上面）
+        octx.lineWidth = 2;
+        octx.setLineDash([6, 4]);
+        for (const edge of edges) {
+            const fromNode = nodes[edge.from];
+            const toNode = nodes[edge.to];
+            if (!fromNode || !toNode) continue;
+
+            const fx = fromNode.x + CW / 2;
+            const fy = fromNode.y + CH / 2;
+            const tx = toNode.x + CW / 2;
+            const ty = toNode.y + CH / 2;
+
+            // 计算卡片边缘交点（从中心到边缘的交点）
+            const dx = tx - fx, dy = ty - fy;
+            const absDx = Math.abs(dx), absDy = Math.abs(dy);
+            let startX = fx, startY = fy, endX = tx, endY = ty;
+
+            if (absDx > 1 || absDy > 1) {
+                // 从from卡片边缘出发
+                const scaleX = absDx > 0.1 ? (CW / 2) / absDx : 9999;
+                const scaleY = absDy > 0.1 ? (CH / 2) / absDy : 9999;
+                const scaleFrom = Math.min(scaleX, scaleY);
+                startX = fx + dx * scaleFrom;
+                startY = fy + dy * scaleFrom;
+
+                // 到to卡片边缘
+                const scaleTo = Math.min(scaleX, scaleY);
+                endX = tx - dx * scaleTo;
+                endY = ty - dy * scaleTo;
+            }
+
+            // 连接线渐变色
+            const grad = octx.createLinearGradient(startX, startY, endX, endY);
+            grad.addColorStop(0, 'rgba(100,180,255,0.6)');
+            grad.addColorStop(0.5, 'rgba(100,180,255,0.3)');
+            grad.addColorStop(1, 'rgba(100,180,255,0.6)');
+            octx.strokeStyle = grad;
+
+            octx.beginPath();
+            octx.moveTo(startX, startY);
+            octx.lineTo(endX, endY);
+            octx.stroke();
+
+            // 在线中点画一个小箭头（菱形标记）
+            const mx = (startX + endX) / 2;
+            const my = (startY + endY) / 2;
+            octx.setLineDash([]);
+            octx.fillStyle = 'rgba(100,180,255,0.5)';
+            octx.save();
+            octx.translate(mx, my);
+            octx.rotate(Math.atan2(dy, dx));
+            octx.beginPath();
+            octx.moveTo(4, 0);
+            octx.lineTo(0, -3);
+            octx.lineTo(-4, 0);
+            octx.lineTo(0, 3);
+            octx.closePath();
+            octx.fill();
+            octx.restore();
+            octx.setLineDash([6, 4]);
+        }
+        octx.setLineDash([]);
+
+        // 绘制每张地图的卡片
+        const regions = {};
+        for (const mapId of layout.mapIds) {
+            const node = nodes[mapId];
+            if (!node) continue;
+            const map = g.mapManager.maps[mapId];
+            if (!map) continue;
+
+            const x = node.x, y = node.y;
+            regions[mapId] = { x, y, w: CW, h: CH };
+
+            const typeConf = this._getMapTypeConfig(map.type);
+
+            // 卡片背景
+            octx.fillStyle = 'rgba(20,22,35,0.9)';
+            this._roundRect(octx, x, y, CW, CH, 6);
+            octx.fill();
+
+            // 卡片边框
+            octx.strokeStyle = typeConf.border;
+            octx.lineWidth = 1.5;
+            this._roundRect(octx, x, y, CW, CH, 6);
+            octx.stroke();
+
+            // 类型标签（左上角小标签）
+            octx.fillStyle = typeConf.bg;
+            octx.fillRect(x + 4, y + 4, 26, 12);
+            octx.fillStyle = typeConf.color;
+            octx.font = '8px monospace';
+            octx.textAlign = 'center';
+            octx.fillText(typeConf.label, x + 17, y + 13);
+
+            // 地图名称（居中）
+            octx.fillStyle = '#E0E0E0';
+            octx.font = 'bold 11px monospace';
+            octx.textAlign = 'center';
+            octx.fillText(map.name, x + CW / 2, y + CH / 2 + 5);
+
+            // 顶部类型色条
+            octx.fillStyle = typeConf.color;
+            octx.fillRect(x + 6, y, CW - 12, 2);
+        }
+
+        octx.textAlign = 'left';
+
+        this._worldMapCache = { canvas: offCanvas, w: canvasW, h: canvasH, regions, nodes, cardW: CW, cardH: CH };
+        return this._worldMapCache;
+    }
+
+    /** 辅助：绘制圆角矩形路径 */
+    _roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    /** 获取地图之间的传送点连接线数据（保留兼容） */
+    _getMapConnections() {
+        const g = this.game;
+        const mm = g.mapManager;
+        const conns = [];
+        const seen = new Set();
+
+        const allMapIds = [
+            'qingye_town', 'route_001', 'bibo_forest', 'bibo_town',
+            'mist_marsh', 'reef_route', 'redrock_path', 'lingyuan_chamber',
+            'yanyang_city', 'abandoned_mine',
+            'town1', 'wild', 'town2', 'cave'
+        ];
+        for (const id of allMapIds) {
+            const map = mm.maps[id];
+            if (!map || !map.transfers) continue;
+            for (const t of map.transfers) {
+                const key = [id, t.targetMap, t.x, t.y, t.targetX, t.targetY].join(',');
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    conns.push({
+                        from: id, to: t.targetMap,
+                        fx: t.x, fy: t.y,
+                        tx: t.targetX, ty: t.targetY
+                    });
+                }
+            }
+        }
+        return conns;
+    }
+
+    /** 计算世界地图在屏幕上的显示参数（缩放+居中） */
+    _getWorldMapDisplayParams() {
+        const g = this.game;
+        const W = g.W, H = g.H;
+        const thumb = this._getWorldMapThumbnail();
+        if (!thumb) return null;
+
+        const TOP_MARGIN = 58;
+        const BOTTOM_MARGIN = 35;
+        const SIDE_MARGIN = 12;
+        const availW = W - SIDE_MARGIN * 2;
+        const availH = H - TOP_MARGIN - BOTTOM_MARGIN;
+
+        const scale = Math.min(availW / thumb.w, availH / thumb.h, 2.5);
+        const displayW = Math.floor(thumb.w * scale);
+        const displayH = Math.floor(thumb.h * scale);
+        const displayX = Math.floor((W - displayW) / 2);
+        const displayY = Math.floor(TOP_MARGIN + (availH - displayH) / 2);
+
+        return { x: displayX, y: displayY, w: displayW, h: displayH, scale, thumb };
+    }
+
+    _updateMapPanel(now) {
+        const g = this.game;
+
+        // ESC关闭
+        if (g.input.isCancelPressed()) { this.mapPanelMode = false; return; }
+
+        // 点击检测
+        if (g.input.hasPendingClick()) {
+            const click = g.input.getClick();
+            if (click) {
+                // 返回按钮
+                const backBtnW = 50, backBtnH = 22;
+                const backBtnX = g.W - backBtnW - 10, backBtnY = 8;
+                if (click.x >= backBtnX && click.x <= backBtnX + backBtnW &&
+                    click.y >= backBtnY && click.y <= backBtnY + backBtnH) { this.mapPanelMode = false; return; }
+
+                // 检测点击了哪张地图卡片
+                const params = this._getWorldMapDisplayParams();
+                if (params) {
+                    const cx = (click.x - params.x) / params.scale;
+                    const cy = (click.y - params.y) / params.scale;
+
+                    for (const [mapId, region] of Object.entries(params.thumb.regions)) {
+                        if (cx >= region.x && cx <= region.x + region.w &&
+                            cy >= region.y && cy <= region.y + region.h) {
+                            const tp = this._getTeleportPoints().find(p => p.id === mapId);
+                            const canTeleport = tp && (tp.badgeId === null || g.creaturesManager.hasBadge(tp.badgeId));
+                            if (canTeleport && mapId !== g.mapManager.currentMapId) {
+                                this._teleportToMap(tp);
+                            }
+                            return;
+                        }
+                    }
+                }
+                // 点击空白区域关闭
+                this.mapPanelMode = false;
+            }
+        }
+    }
+
+    _renderMapPanel() {
+        const ctx = this.game.ctx;
+        const W = this.game.W, H = this.game.H;
+        const g = this.game;
+        const currentMapId = g.mapManager.currentMapId;
+        const teleportPoints = this._getTeleportPoints();
+
+        // 全屏遮罩
+        ctx.fillStyle = 'rgba(8,10,18,0.95)';
+        ctx.fillRect(0, 0, W, H);
+
+        // 标题栏背景
+        ctx.fillStyle = 'rgba(255,215,0,0.06)';
+        ctx.fillRect(0, 0, W, 50);
+
+        // 标题
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('世界地图', W / 2, 22);
+
+        // 当前位置提示
+        const currentMap = g.mapManager.getCurrentMap();
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#888';
+        ctx.fillText(`当前位置: ${currentMap ? currentMap.name : '未知'}  |  击败道馆馆主解锁传送`, W / 2, 40);
+
+        // 返回按钮
+        const backBtnW = 50, backBtnH = 22;
+        const backBtnX = W - backBtnW - 10, backBtnY = 14;
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.12)';
+        this._roundRect(ctx, backBtnX, backBtnY, backBtnW, backBtnH, 4);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,215,0,0.5)';
+        ctx.lineWidth = 1;
+        this._roundRect(ctx, backBtnX, backBtnY, backBtnW, backBtnH, 4);
+        ctx.stroke();
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('← 返回', backBtnX + backBtnW / 2, backBtnY + 15);
+
+        // 渲染世界地图卡片图
+        const params = this._getWorldMapDisplayParams();
+        if (!params) return;
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(params.thumb.canvas, params.x, params.y, params.w, params.h);
+
+        const now = performance.now();
+
+        // 当前位置高亮 + 脉冲动画
+        const region = params.thumb.regions[currentMapId];
+        if (region) {
+            const rx = params.x + region.x * params.scale;
+            const ry = params.y + region.y * params.scale;
+            const rw = region.w * params.scale;
+            const rh = region.h * params.scale;
+
+            const pulseAlpha = 0.15 + 0.15 * Math.sin(now / 300);
+
+            // 高亮背景
+            ctx.fillStyle = `rgba(76,175,80,${pulseAlpha.toFixed(2)})`;
+            this._roundRect(ctx, rx - 2, ry - 2, rw + 4, rh + 4, 8);
+            ctx.fill();
+
+            // 高亮边框
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            this._roundRect(ctx, rx - 1, ry - 1, rw + 2, rh + 2, 7);
+            ctx.stroke();
+
+            // 外圈脉冲光晕
+            const pulse2 = 0.1 + 0.2 * Math.sin(now / 500);
+            ctx.strokeStyle = `rgba(76,175,80,${pulse2.toFixed(2)})`;
+            ctx.lineWidth = 2;
+            this._roundRect(ctx, rx - 5, ry - 5, rw + 10, rh + 10, 10);
+            ctx.stroke();
+        }
+
+        // 道馆城镇状态标签（在卡片下方显示）
+        for (const [mapId, reg] of Object.entries(params.thumb.regions)) {
+            const map = g.mapManager.maps[mapId];
+            if (!map) continue;
+
+            const rx = params.x + reg.x * params.scale;
+            const ry = params.y + reg.y * params.scale;
+            const rw = reg.w * params.scale;
+
+            const isCurrent = mapId === currentMapId;
+            const tp = teleportPoints.find(p => p.id === mapId);
+            if (!tp) continue;
+
+            const hasBadge = tp.badgeId === null || g.creaturesManager.hasBadge(tp.badgeId);
+
+            const statusText = isCurrent ? '当前位置' : (hasBadge ? '可传送' : `${tp.leaderName}（锁定）`);
+            const statusColor = isCurrent ? '#4CAF50' : (hasBadge ? '#FFD700' : '#F44336');
+
+            ctx.font = 'bold 9px monospace';
+            ctx.textAlign = 'center';
+            const stW = ctx.measureText(statusText).width + 10;
+            const stX = rx + rw / 2;
+            const stY = ry + reg.h * params.scale + 12;
+
+            // 状态标签背景
+            ctx.fillStyle = isCurrent ? 'rgba(76,175,80,0.15)' : (hasBadge ? 'rgba(255,215,0,0.12)' : 'rgba(244,67,54,0.12)');
+            this._roundRect(ctx, stX - stW / 2, stY - 8, stW, 13, 3);
+            ctx.fill();
+
+            ctx.fillStyle = statusColor;
+            ctx.fillText(statusText, stX, stY + 2);
+        }
+
+        // 图例
+        ctx.textAlign = 'left';
+        const legendY = H - 28;
+        const legends = [
+            { label: '城镇', color: '#FFD700' },
+            { label: '道路', color: '#81C784' },
+            { label: '副本', color: '#E57373' },
+            { label: '秘境', color: '#CE93D8' }
+        ];
+        let legendX = 15;
+        ctx.font = '9px monospace';
+        for (const leg of legends) {
+            ctx.fillStyle = leg.color;
+            ctx.fillRect(legendX, legendY - 5, 8, 8);
+            ctx.fillStyle = '#888';
+            ctx.fillText(leg.label, legendX + 11, legendY + 3);
+            legendX += ctx.measureText(leg.label).width + 22;
+        }
+
+        // 底部提示
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#555';
+        ctx.font = '10px monospace';
+        ctx.fillText('点击可传送的城镇传送  ESC关闭', W / 2, H - 10);
+        ctx.textAlign = 'left';
+    }
+
+    /** 传送到指定地图的 playerStart 位置 */
+    _teleportToMap(teleportPoint) {
+        const g = this.game;
+        const targetId = teleportPoint.id;
+
+        if (!g.mapManager.maps[targetId]) {
+            g.ui.showMessage('该地图尚未开放！');
+            this.mapPanelMode = false;
+            return;
+        }
+
+        g.mapManager.switchMap(targetId);
+        const newMap = g.mapManager.getCurrentMap();
+        g.player.setPosition(newMap.playerStart.x, newMap.playerStart.y);
+        g.npcManager.loadNPCs(newMap.npcs);
+        g.camera.snapTo(g.player.x, g.player.y, g.player.width, g.player.height, newMap.width * g.mapManager.tileSize, newMap.height * g.mapManager.tileSize);
+
+        this.mapPanelMode = false;
+        g.ui.showMessage(`传送到了${newMap.name}`);
+        try { g.saveManager.save(g); } catch (e) { console.error('传送后保存失败:', e); }
     }
 }

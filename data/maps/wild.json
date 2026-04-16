@@ -1,144 +1,85 @@
 {
-  "id": "wild",
-  "name": "野外草丛",
+  "id": "route_001",
+  "name": "青叶野外",
   "width": 30,
   "height": 20,
   "tileSize": 32,
+  "type": "route",
+  "region": "中州南部",
+  "chapter": 1,
   "playerStart": {
-    "x": 15,
-    "y": 2
+    "x": 2,
+    "y": 10
   },
   "transfers": [
     {
-      "x": 15,
-      "y": 0,
-      "targetMap": "town1",
+      "x": 0,
+      "y": 9,
+      "targetMap": "qingye_town",
       "targetX": 10,
       "targetY": 13
     },
     {
-      "x": 16,
-      "y": 0,
-      "targetMap": "town1",
+      "x": 0,
+      "y": 10,
+      "targetMap": "qingye_town",
       "targetX": 11,
       "targetY": 13
     },
     {
       "x": 29,
       "y": 10,
-      "targetMap": "town2",
+      "targetMap": "bibo_forest",
       "targetX": 1,
-      "targetY": 7
+      "targetY": 10
     },
     {
       "x": 29,
       "y": 11,
-      "targetMap": "town2",
+      "targetMap": "bibo_forest",
       "targetX": 1,
-      "targetY": 8
-    },
-    {
-      "x": 10,
-      "y": 19,
-      "targetMap": "cave",
-      "targetX": 0,
-      "targetY": 7
-    },
-    {
-      "x": 11,
-      "y": 19,
-      "targetMap": "cave",
-      "targetX": 0,
-      "targetY": 8
+      "targetY": 11
     }
   ],
   "npcs": [
     {
-      "id": "trainer1",
+      "id": "trainer_youngster_a",
       "x": 5,
       "y": 10,
       "type": "trainer",
-      "name": "训练师小明",
-      "dialogs": ["来对战吧！"],
-      "creatures": [{"creatureId": 4, "level": 3}, {"creatureId": 6, "level": 3}],
+      "name": "少年训练师阿明",
+      "dialogs": ["嘿！来对战吧！", "我的精灵可是很强的！"],
+      "defeatDialogs": ["你真强…我输了。", "还要再练习呢…"],
+      "creatures": [{"creatureId": 10, "level": 3}, {"creatureId": 12, "level": 4}],
       "defeated": false,
-      "reward": 100
+      "reward": 60
     },
     {
-      "id": "trainer2",
+      "id": "trainer_lass_b",
       "x": 24,
-      "y": 14,
+      "y": 6,
       "type": "trainer",
-      "name": "训练师小红",
-      "dialogs": ["我的精灵很强哦！"],
-      "creatures": [{"creatureId": 2, "level": 4}, {"creatureId": 1, "level": 4}],
+      "name": "少女训练师小芸",
+      "dialogs": ["我的精灵可不弱的！", "来试试看！"],
+      "defeatDialogs": ["还要再练习呢…", "下次一定赢你！"],
+      "creatures": [{"creatureId": 10, "level": 4}, {"creatureId": 14, "level": 5}],
       "defeated": false,
-      "reward": 150
+      "reward": 80
     },
     {
-      "id": "trainer3",
-      "x": 8,
-      "y": 4,
-      "type": "trainer",
-      "name": "捕虫少年阿杰",
-      "dialogs": ["我专门捕捉虫系精灵！", "来比比看谁的更强！"],
-      "creatures": [{"creatureId": 16, "level": 5}, {"creatureId": 15, "level": 5}],
-      "defeated": false,
-      "reward": 120
-    },
-    {
-      "id": "trainer4",
-      "x": 22,
-      "y": 4,
-      "type": "trainer",
-      "name": "露营者大叔",
-      "dialogs": ["在野外露营最棒了！", "顺便来场对战吧！"],
-      "creatures": [{"creatureId": 13, "level": 6}, {"creatureId": 7, "level": 6}],
-      "defeated": false,
-      "reward": 180
-    },
-    {
-      "id": "trainer5",
-      "x": 12,
-      "y": 17,
-      "type": "trainer",
-      "name": "泳圈少女小美",
-      "dialogs": ["水属性精灵是最可爱的！", "你不觉得吗？"],
-      "creatures": [{"creatureId": 9, "level": 5}, {"creatureId": 19, "level": 6}],
-      "defeated": false,
-      "reward": 160
-    },
-    {
-      "id": "wild_hiker",
+      "id": "npc_wild_hiker",
       "x": 18,
       "y": 5,
       "type": "dialog",
-      "name": "旅行者",
-      "dialogs": ["这片草丛里什么精灵都有。", "往东走可以到碧波镇。"]
-    },
-    {
-      "id": "quest_helper_wild",
-      "x": 26,
-      "y": 16,
-      "type": "quest_giver",
-      "name": "迷路的商人",
-      "questDesc": "护送商人到碧波镇（找到他后自动完成）",
-      "reward": 500,
-      "questId": "escort_merchant",
-      "dialogs": ["救命！我在野外迷路了...", "能带我回碧波镇吗？"]
+      "name": "旅行者老伯",
+      "dialogs": ["这片草丛是新手灵师修炼的好地方。", "往东走能到碧波森林，再往东就是碧波镇了。", "小心那些幻影猫，它们可是稀有精灵！"]
     }
   ],
   "wildCreatures": [
-    {"id": 1, "minLevel": 2, "maxLevel": 4, "weight": 15},
-    {"id": 2, "minLevel": 2, "maxLevel": 4, "weight": 15},
-    {"id": 3, "minLevel": 2, "maxLevel": 4, "weight": 15},
-    {"id": 4, "minLevel": 2, "maxLevel": 4, "weight": 12},
-    {"id": 5, "minLevel": 2, "maxLevel": 3, "weight": 8},
-    {"id": 6, "minLevel": 2, "maxLevel": 4, "weight": 12},
-    {"id": 13, "minLevel": 2, "maxLevel": 3, "weight": 8},
-    {"id": 14, "minLevel": 2, "maxLevel": 3, "weight": 6},
-    {"id": 15, "minLevel": 2, "maxLevel": 3, "weight": 6},
-    {"id": 16, "minLevel": 2, "maxLevel": 4, "weight": 8}
+    {"id": 10, "minLevel": 2, "maxLevel": 4, "weight": 30},
+    {"id": 12, "minLevel": 2, "maxLevel": 3, "weight": 25},
+    {"id": 14, "minLevel": 3, "maxLevel": 4, "weight": 15},
+    {"id": 24, "minLevel": 3, "maxLevel": 4, "weight": 10}
   ],
   "layers": {
     "tiles": [

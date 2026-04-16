@@ -758,6 +758,22 @@ class UIManager {
         ctx.textAlign = 'center';
         ctx.fillText('☰', this.menuBtnX + this.menuBtnW / 2, this.menuBtnY + 21);
         ctx.textAlign = 'left';
+
+        // 地图按钮（左下角）
+        this.mapBtnX = 8;
+        this.mapBtnY = this.H - 40;
+        this.mapBtnW = 40;
+        this.mapBtnH = 30;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(this.mapBtnX, this.mapBtnY, this.mapBtnW, this.mapBtnH);
+        ctx.strokeStyle = 'rgba(255,215,0,0.6)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(this.mapBtnX, this.mapBtnY, this.mapBtnW, this.mapBtnH);
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('🗺', this.mapBtnX + this.mapBtnW / 2, this.mapBtnY + 21);
+        ctx.textAlign = 'left';
     }
 
     // ==================== 工具方法 ====================

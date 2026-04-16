@@ -78,8 +78,8 @@ class CreaturesManager {
             {"id":10,"name":"岩崩","type":"rock","power":65,"pp":15,"desc":"引发岩石崩塌"},
             {"id":11,"name":"撞击","type":"normal","power":35,"pp":30,"desc":"用身体撞击"},
             {"id":12,"name":"叫声","type":"normal","power":0,"pp":20,"desc":"降低对方攻击力"},
-            {"id":13,"name":"撞击","type":"normal","power":35,"pp":30,"desc":"用身体撞击"},
-            {"id":14,"name":"电光一闪","type":"normal","power":40,"pp":20,"desc":"高速冲撞"},
+            {"id":13,"name":"电光一闪","type":"normal","power":40,"pp":20,"desc":"高速冲撞（先手）"},
+            {"id":14,"name":"沙尘","type":"ground","power":35,"pp":20,"desc":"掀起沙尘攻击"},
             {"id":15,"name":"变硬","type":"normal","power":0,"pp":20,"desc":"提升自身防御"},
             {"id":16,"name":"啄","type":"dark","power":35,"pp":25,"desc":"用嘴啄击"},
             {"id":17,"name":"暗影球","type":"dark","power":60,"pp":15,"desc":"投掷暗影球"},
@@ -88,10 +88,10 @@ class CreaturesManager {
             {"id":20,"name":"日光束","type":"grass","power":75,"pp":10,"desc":"聚集阳光攻击"},
             {"id":21,"name":"冲浪","type":"water","power":75,"pp":10,"desc":"掀起巨浪攻击"},
             {"id":22,"name":"打雷","type":"electric","power":75,"pp":10,"desc":"降下雷电攻击"},
-            {"id":23,"name":"地震","type":"rock","power":80,"pp":10,"desc":"引发地震攻击"},
+            {"id":23,"name":"地震","type":"ground","power":80,"pp":10,"desc":"引发地震攻击"},
             {"id":24,"name":"龙之波动","type":"dragon","power":80,"pp":10,"desc":"释放龙之波动"},
-            {"id":25,"name":"破坏光线","type":"normal","power":100,"pp":5,"desc":"释放强力光线"},
-            {"id":26,"name":"龙之舞","type":"dragon","power":0,"pp":10,"desc":"提升攻击和速度"}
+            {"id":25,"name":"龙之舞","type":"dragon","power":0,"pp":10,"desc":"提升攻击和速度"},
+            {"id":26,"name":"破坏光线","type":"normal","power":100,"pp":5,"desc":"释放强力光线"}
         ];
         this.itemsData = [
             {"id":1,"name":"精灵球","type":"ball","price":100,"catchRate":0.5,"desc":"基础捕捉道具"},
@@ -335,14 +335,23 @@ class CreaturesManager {
     /** 获取属性颜色 */
     getTypeColor(type) {
         const colors = {
-            fire: '#F08030',
-            water: '#6890F0',
-            grass: '#78C850',
+            fire:     '#F08030',
+            water:    '#6890F0',
+            grass:    '#78C850',
             electric: '#F8D030',
-            rock: '#B8A038',
-            dark: '#705848',
-            dragon: '#7038F8',
-            normal: '#A8A878'
+            rock:     '#B8A038',
+            dark:     '#705848',
+            dragon:   '#7038F8',
+            normal:   '#A8A878',
+            ice:      '#98D8D8',
+            psychic:  '#F85888',
+            fighting: '#C03028',
+            ground:   '#E0C068',
+            poison:   '#A040A0',
+            bug:      '#A8B820',
+            flying:   '#A890F0',
+            ghost:    '#705898',
+            steel:    '#B8B8D0'
         };
         return colors[type] || '#A8A878';
     }
@@ -840,15 +849,20 @@ class CreaturesManager {
      * 后续可扩展为从 JSON 加载
      */
     static get GYM_DEFINITIONS() {
+        // V1 三个道馆（对应策划文档 8.1节）
+        // 碧波徽章 → 澜汐（水系，第1章末）
+        // 烈阳徽章 → 炎烈（火系，第3章）
+        // V2+ 道馆留占位
         return [
-            { id: 'stone_badge', name: '岩石徽章', gymLeader: '岩壁', type: 'rock', rewardGold: 500, rewardItem: null, requiredLevel: 5 },
-            { id: 'water_badge', name: '激流徽章', gymLeader: '海潮', type: 'water', rewardGold: 700, rewardItem: null, requiredLevel: 10 },
-            { id: 'thunder_badge', name: '雷电徽章', gymLeader: '闪电', type: 'electric', rewardGold: 900, rewardItem: null, requiredLevel: 15 },
-            { id: 'poison_badge', name: '毒雾徽章', gymLeader: '暗影', type: 'poison', rewardGold: 1100, rewardItem: null, requiredLevel: 20 },
-            { id: 'psychic_badge', name: '心灵徽章', gymLeader: '幻心', type: 'psychic', rewardGold: 1400, rewardItem: null, requiredLevel: 25 },
-            { id: 'flame_badge', name: '烈焰徽章', gymLeader: '炎皇', type: 'fire', rewardGold: 1700, rewardItem: null, requiredLevel: 30 },
-            { id: 'ice_badge', name: '冰晶徽章', gymLeader: '霜月', type: 'ice', rewardGold: 2000, rewardItem: null, requiredLevel: 35 },
-            { id: 'champion', name: '冠军证明', gymLeader: '冠军', type: 'normal', rewardGold: 5000, rewardItem: null, requiredLevel: 40 }
+            { id: 'bibo_badge',   name: '碧波徽章', gymLeader: '澜汐', type: 'water',  rewardGold: 600,  rewardItem: null, requiredLevel: 10, map: 'bibo_town',    chapter: 1 },
+            { id: 'yanyang_badge', name: '烈阳徽章', gymLeader: '炎烈', type: 'fire',   rewardGold: 1000, rewardItem: null, requiredLevel: 20, map: 'yanyang_city', chapter: 3 },
+            // V2 道馆（占位）
+            { id: 'thunder_badge', name: '雷电徽章', gymLeader: '（V2）', type: 'electric', rewardGold: 900,  rewardItem: null, requiredLevel: 25, map: null, chapter: 4 },
+            { id: 'grass_badge',  name: '木叶徽章', gymLeader: '（V2）', type: 'grass',  rewardGold: 1100, rewardItem: null, requiredLevel: 28, map: null, chapter: 4 },
+            { id: 'psychic_badge', name: '心灵徽章', gymLeader: '（V2）', type: 'psychic', rewardGold: 1400, rewardItem: null, requiredLevel: 32, map: null, chapter: 5 },
+            { id: 'ground_badge',  name: '大地徽章', gymLeader: '（V2）', type: 'ground', rewardGold: 1700, rewardItem: null, requiredLevel: 36, map: null, chapter: 6 },
+            { id: 'ice_badge',    name: '冰晶徽章', gymLeader: '（V3）', type: 'ice',   rewardGold: 2000, rewardItem: null, requiredLevel: 40, map: null, chapter: 7 },
+            { id: 'dragon_badge', name: '龙神徽章', gymLeader: '（V3）', type: 'dragon', rewardGold: 2500, rewardItem: null, requiredLevel: 45, map: null, chapter: 7 }
         ];
     }
 

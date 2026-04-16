@@ -7,7 +7,7 @@ class MapManager {
     constructor() {
         this.tileSize = 32;
         // 当前地图ID
-        this.currentMapId = 'town1';
+        this.currentMapId = 'qingye_town';
         // 地图数据缓存
         this.maps = {};
         // 初始化标志
@@ -32,7 +32,22 @@ class MapManager {
             fence: '#8B7355',       // 栅栏
             sign: '#D2B48C',        // 标志牌
             flower1: '#ff6b9d',     // 花1
-            flower2: '#ffd93d'      // 花2
+            flower2: '#ffd93d',     // 花2
+            // 新增：洞穴/沼泽/特殊地图
+            caveWall: '#1a1a2a',    // 洞穴墙壁
+            caveFloor: '#2a2a3a',   // 洞穴地板
+            cavePath: '#3a3a5a',    // 洞穴路径
+            caveCrystal: '#7b68ee', // 洞穴水晶
+            caveStalagmite: '#2a2a3a', // 石笋
+            caveStalactite: '#2a2a3a', // 钟乳石
+            mud: '#6b4c2a',         // 泥地（沼泽）
+            swamp: '#2a3a1a',       // 沼泽
+            dirt: '#8b6432',        // 土路
+            rock: '#5a4a3a',        // 岩石
+            reef: '#4a6a8a',        // 礁石
+            stoneWall: '#3a3a4a',   // 石墙（灵渊居）
+            stoneFloor: '#4a4a6a',  // 石板地
+            crystal: '#a078d8'      // 水晶（装饰）
         };
     }
 
@@ -48,7 +63,14 @@ class MapManager {
      * 初始化地图 - 异步加载 JSON，失败则回退到代码生成
      */
     async _initMaps() {
-        const mapIds = ['town1', 'wild', 'town2', 'cave'];
+        // V1完整地图列表：新地图ID + 旧地图文件（同时加载以兼容旧存档）
+        const mapIds = [
+            'qingye_town', 'route_001', 'bibo_forest', 'bibo_town',
+            'mist_marsh', 'reef_route', 'redrock_path', 'lingyuan_chamber',
+            'yanyang_city', 'abandoned_mine',
+            // 旧ID兼容（文件已重命名，但旧存档可能引用它们）
+            'town1', 'wild', 'town2', 'cave'
+        ];
         
         for (const id of mapIds) {
             try {
@@ -108,25 +130,51 @@ class MapManager {
      */
     _generateMap(mapId) {
         switch (mapId) {
+            case 'qingye_town':
             case 'town1':
                 return this._generateTown1();
+            case 'route_001':
             case 'wild':
                 return this._generateWild();
+            case 'bibo_town':
             case 'town2':
                 return this._generateTown2();
+            case 'abandoned_mine':
             case 'cave':
                 return this._generateCave();
+            // 新地图回退（JSON加载失败时用近似地图代替）
+            case 'bibo_forest':
+                return this._generateWild();       // 森林→野外近似
+            case 'mist_marsh':
+                return this._generateCave();       // 沼泽→洞穴近似
+            case 'reef_route':
+                return this._generateWild();       // 航道→野外近似
+            case 'redrock_path':
+                return this._generateWild();       // 古道→野外近似
+            case 'lingyuan_chamber':
+                return this._generateCave();       // 秘室→洞穴近似
+            case 'yanyang_city':
+                return this._generateTown2();      // 炎阳城→镇近似
             default:
-                console.error(`Unknown map ID: ${mapId}`);
+                console.error(`Unknown map ID: ${mapId}, using town1 fallback`);
                 return this._generateTown1();
         }
     }
 
     /** 生成所有地图（同步版本，用于回退） */
     _generateMaps() {
-        this.maps['town1'] = this._generateTown1();
-        this.maps['wild'] = this._generateWild();
-        this.maps['town2'] = this._generateTown2();
+        // 同时注册新旧ID，确保切换时都能找到
+        const town1 = this._generateTown1();
+        this.maps['qingye_town'] = town1;
+        this.maps['town1'] = town1;
+
+        const wild = this._generateWild();
+        this.maps['route_001'] = wild;
+        this.maps['wild'] = wild;
+
+        const town2 = this._generateTown2();
+        this.maps['bibo_town'] = town2;
+        this.maps['town2'] = town2;
     }
 
     /** 青叶镇 - 20x15 瓦片 */

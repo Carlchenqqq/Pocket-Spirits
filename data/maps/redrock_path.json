@@ -1,0 +1,147 @@
+{
+  "id": "redrock_path",
+  "name": "赤岩古道",
+  "width": 28,
+  "height": 20,
+  "tileSize": 32,
+  "type": "route",
+  "region": "中州西部",
+  "chapter": 3,
+  "playerStart": {
+    "x": 2,
+    "y": 10
+  },
+  "transfers": [
+    {
+      "x": 0,
+      "y": 8,
+      "targetMap": "bibo_town",
+      "targetX": 19,
+      "targetY": 7
+    },
+    {
+      "x": 0,
+      "y": 9,
+      "targetMap": "bibo_town",
+      "targetX": 19,
+      "targetY": 8
+    },
+    {
+      "x": 27,
+      "y": 8,
+      "targetMap": "yanyang_city",
+      "targetX": 12,
+      "targetY": 16
+    },
+    {
+      "x": 27,
+      "y": 9,
+      "targetMap": "yanyang_city",
+      "targetX": 13,
+      "targetY": 16
+    }
+  ],
+  "npcs": [
+    {
+      "id": "trainer_climber1",
+      "x": 8,
+      "y": 6,
+      "type": "trainer",
+      "name": "登山者老赵",
+      "dialogs": ["在这险峻的古道，只有强者才能通行！", "来，让我试试你的实力！"],
+      "defeatDialogs": ["不错！继续前进吧！", "炎阳城就在北方了。"],
+      "creatures": [{"creatureId": 12, "level": 14}, {"creatureId": 13, "level": 15}],
+      "defeated": false,
+      "reward": 400
+    },
+    {
+      "id": "trainer_miner",
+      "x": 20,
+      "y": 14,
+      "type": "trainer",
+      "name": "矿工师傅老铁",
+      "dialogs": ["我在这里挖矿多年，也练出了一身好本领！", "你来挑战？正合我意！"],
+      "defeatDialogs": ["好家伙…你比我想象的强！", "继续加油！"],
+      "creatures": [{"creatureId": 20, "level": 13}, {"creatureId": 22, "level": 14}],
+      "defeated": false,
+      "reward": 380
+    },
+    {
+      "id": "trainer_grunt_disguised",
+      "x": 14,
+      "y": 4,
+      "type": "trainer",
+      "name": "可疑的矿工",
+      "dialogs": ["喂，看你很不顺眼啊。", "这条路不是随便走的！"],
+      "defeatDialogs": ["可恶…组织的任务失败了…", "早晚…会回来的…"],
+      "creatures": [{"creatureId": 12, "level": 15}, {"creatureId": 14, "level": 16}],
+      "defeated": false,
+      "reward": 450,
+      "isGrunt": true
+    },
+    {
+      "id": "npc_ancient_stone",
+      "x": 5,
+      "y": 15,
+      "type": "dialog",
+      "name": "旅行灵师",
+      "dialogs": [
+        "这里是赤岩古道，古代灵师们曾在此修炼的地方。",
+        "偶尔会有火山灰飘落，会降低命中率，小心。",
+        "前方炎阳城有个热血的道馆馆主，去挑战吧！"
+      ]
+    }
+  ],
+  "wildCreatures": [
+    {"id": 12, "minLevel": 12, "maxLevel": 16, "weight": 30},
+    {"id": 13, "minLevel": 13, "maxLevel": 17, "weight": 15},
+    {"id": 20, "minLevel": 12, "maxLevel": 15, "weight": 25},
+    {"id": 22, "minLevel": 15, "maxLevel": 18, "weight": 10}
+  ],
+  "layers": {
+    "tiles": [
+      ["rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock"],
+      ["rock","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","rock","rock","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","tallGrass1","tallGrass2","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","rock","dirt","dirt","tallGrass1","tallGrass2","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","tallGrass2","tallGrass1","rock","dirt","tallGrass1","tallGrass2","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","tallGrass2","tallGrass1","dirt","dirt","rock","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","rock","dirt","tallGrass2","tallGrass1","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path"],
+      ["path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path","path"],
+      ["rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","tallGrass1","tallGrass2","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","rock","dirt","dirt","tallGrass1","tallGrass2","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","tallGrass2","tallGrass1","rock","dirt","tallGrass1","tallGrass2","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","tallGrass2","tallGrass1","dirt","dirt","rock","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","rock","dirt","tallGrass2","tallGrass1","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","dirt","rock"],
+      ["rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock","rock"]
+    ],
+    "collision": [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,1,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,2,2,0,0,0,0,0,0,1,0,0,0,0,1,0,0,2,2,0,0,0,0,0,0,0,1],
+      [1,0,2,2,1,0,2,2,0,0,0,0,0,0,0,1,0,0,2,2,0,0,1,0,0,0,0,1],
+      [1,0,0,0,1,0,2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,1],
+      [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+      [3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,2,2,0,0,0,0,0,0,1,0,0,0,0,1,0,0,2,2,0,0,0,0,0,0,0,1],
+      [1,0,2,2,1,0,2,2,0,0,0,0,0,0,0,1,0,0,2,2,0,0,1,0,0,0,0,1],
+      [1,0,0,0,1,0,2,2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ]
+  }
+}
