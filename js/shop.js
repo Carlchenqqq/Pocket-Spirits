@@ -301,7 +301,7 @@ class ShopManager {
         ctx.fillRect(0, 0, W, H);
 
         // 弹框背景
-        const boxW = 320, boxH = 170;
+        const boxW = 320, boxH = 200;
         const boxX = (W - boxW) / 2, boxY = (H - boxH) / 2;
         ctx.fillStyle = 'rgba(30, 30, 50, 0.95)';
         ctx.fillRect(boxX, boxY, boxW, boxH);
