@@ -31,14 +31,14 @@
       "y": 10,
       "targetMap": "bibo_forest",
       "targetX": 1,
-      "targetY": 10
+      "targetY": 9
     },
     {
       "x": 29,
       "y": 11,
       "targetMap": "bibo_forest",
       "targetX": 1,
-      "targetY": 11
+      "targetY": 10
     }
   ],
   "npcs": [

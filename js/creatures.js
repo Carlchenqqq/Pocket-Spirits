@@ -29,6 +29,14 @@ class CreaturesManager {
         this.npcDex = {};       // { npcId: { encountered: true, name, type } }
         // 精灵像素画定义
         this.spriteData = this._defineSprites();
+
+        // 安全常量
+        this.MAX_GOLD = 9999999;
+    }
+
+    /** 安全修改金币（自动钳制到合法范围） */
+    _modGold(amount) {
+        this.gold = Math.max(0, Math.min(this.MAX_GOLD, (this.gold || 0) + amount));
     }
 
     /** 加载所有数据 */
@@ -39,12 +47,37 @@ class CreaturesManager {
                 fetch('js/data/skills.json'),
                 fetch('js/data/items.json')
             ]);
+
+            // 校验响应状态
+            if (!creaturesRes.ok || !skillsRes.ok || !itemsRes.ok) {
+                console.warn('[CreaturesManager] 数据加载 HTTP 错误，使用后备数据');
+                this._loadFallbackData();
+                return;
+            }
+
+            // 校验内容类型
+            const ct1 = creaturesRes.headers.get('content-type');
+            const ct2 = skillsRes.headers.get('content-type');
+            const ct3 = itemsRes.headers.get('content-type');
+
+            if (!ct1 || !ct1.includes('json') ||
+                !ct2 || !ct2.includes('json') ||
+                !ct3 || !ct3.includes('json')) {
+                console.warn('[CreaturesManager] 数据格式异常，使用后备数据');
+                this._loadFallbackData();
+                return;
+            }
+
             this.creaturesData = await creaturesRes.json();
             this.skillsData = await skillsRes.json();
             this.itemsData = await itemsRes.json();
+
+            // 最终数据校验
+            if (!Array.isArray(this.creaturesData)) this.creaturesData = [];
+            if (!Array.isArray(this.skillsData)) this.skillsData = [];
+            if (!Array.isArray(this.itemsData)) this.itemsData = [];
         } catch (e) {
-            console.error('加载数据失败:', e);
-            // 使用内嵌数据作为后备
+            console.warn('[CreaturesManager] 加载数据失败:', e);
             this._loadFallbackData();
         }
     }
@@ -274,13 +307,17 @@ class CreaturesManager {
         });
     }
 
-    /** 添加经验值，检查升级 */
+    /** 添加经验值，检查升级（带等级上限） */
     addExp(creature, amount) {
-        creature.exp += amount;
+        // 经验值上限保护
+        creature.exp = Math.max(0, (creature.exp || 0) + Math.abs(amount || 0));
         let leveledUp = false;
-        while (creature.exp >= creature.expToNext) {
+
+        // 等级上限：100
+        while (creature.exp >= creature.expToNext && creature.level < 100) {
             creature.exp -= creature.expToNext;
             creature.level++;
+            if (creature.level > 100) creature.level = 100;
             const newStats = this.calcStats(creature.baseStats, creature.level);
             const hpDiff = newStats.hp - creature.maxHP;
             creature.maxHP = newStats.hp;
@@ -893,9 +930,8 @@ class CreaturesManager {
         this.badges.push(badgeId);
 
         // 发放奖励金币
-        this.gold += badgeDef.rewardGold;
+        this._modGold(badgeDef.rewardGold);
 
-        console.log(`🏆 获得徽章: ${badgeDef.name}！+${badgeDef.rewardGold}G`);
         return true;
     }
 

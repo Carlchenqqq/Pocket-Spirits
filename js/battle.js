@@ -11,7 +11,7 @@
  * 输入检测全在 BattleInputHandler
  */
 class BattleManager {
-    constructor(ctx, canvas, creaturesManager, uiManager) {
+    constructor(ctx, canvas, creaturesManager, uiManager, eventBus) {
         this.ctx = ctx;
         this.canvas = canvas;
         this.W = canvas.width;
@@ -20,7 +20,7 @@ class BattleManager {
         this.ui = uiManager;
 
         // ─── 引擎层实例 ───
-        this.engine = new BattleEngine(window.eventBus);
+        this.engine = new BattleEngine(eventBus);
         this.renderer = new BattleRenderer(ctx, canvas);
 
         // ─── 协调器自身状态（纯 UI 时序状态） ───
@@ -453,7 +453,8 @@ class BattleManager {
         const phase = this.engine.getPhase();
         const action = BattleInputHandler.handleMenuInput(
             input, phase,
-            this.menuIndex, this.skillIndex, now
+            this.menuIndex, this.skillIndex, now,
+            this.W, this.H
         );
 
         this._dispatchAction(action, now);

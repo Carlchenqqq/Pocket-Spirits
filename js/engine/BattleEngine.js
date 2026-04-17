@@ -166,9 +166,12 @@ class BattleEngine {
         const defStat = defender.stats.defense * (1 + defender.statModifiers.defense * 0.25);
 
         // ===== 核心伤害公式 =====
-        // Base = floor( ((2*Level/5+2) * Power * Atk / Def) / 50 ) + 2
+        // 调整后的公式：大幅提高伤害倍率
+        // Damage = ((2*Level/5 + 2) * Power * Atk/Def) / 8 + 10
+        const power = skill.power || 40; // 确保power有值
+        
         let baseDamage = Math.floor(
-            (((2 * level / 5 + 2) * skill.power * atkStat) / (defStat * 50)) + 2
+            (((2 * level / 5 + 2) * power * (atkStat / defStat)) / 8) + 10
         );
         baseDamage = Math.max(1, baseDamage); // 最少1点伤害
 

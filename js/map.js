@@ -77,7 +77,7 @@ class MapManager {
                 const mapData = await this.loadMap(id);
                 if (mapData) {
                     this.maps[id] = mapData;
-                    console.log(`Map ${id} loaded from JSON`);
+                    // Map loaded successfully
                     continue;
                 }
             } catch (e) {
@@ -370,8 +370,8 @@ class MapManager {
             transfers: [
                 { x: 15, y: 0, targetMap: 'town1', targetX: 10, targetY: 13 },
                 { x: 16, y: 0, targetMap: 'town1', targetX: 11, targetY: 13 },
-                { x: W-1, y: 10, targetMap: 'town2', targetX: 1, targetY: 7 },
-                { x: W-1, y: 11, targetMap: 'town2', targetX: 1, targetY: 8 }
+                { x: W-1, y: 10, targetMap: 'bibo_forest', targetX: 1, targetY: 10 },
+                { x: W-1, y: 11, targetMap: 'bibo_forest', targetX: 1, targetY: 11 }
             ],
             npcs: [
                 { id: 'trainer1', x: 5, y: 10, type: 'trainer', name: '训练师小明',
@@ -482,8 +482,7 @@ class MapManager {
             collision,
             playerStart: { x: 2, y: 7 },
             transfers: [
-                { x: 0, y: 7, targetMap: 'wild', targetX: 28, targetY: 10 },
-                { x: 0, y: 8, targetMap: 'wild', targetX: 28, targetY: 11 }
+                { x: 0, y: 7, targetMap: 'bibo_forest', targetX: 28, targetY: 7 }
             ],
             npcs: [
                 { id: 'shop_npc', x: 7, y: 6, type: 'shop', name: '商店店员',

@@ -11,7 +11,6 @@ class GameManager {
 
         // 事件总线（必须在其他模块之前创建，因为 BattleEngine 等依赖它）
         this.eventBus = new EventBus();
-        window.eventBus = this.eventBus;
 
         // 核心模块
         this.input = new InputManager(this.canvas);
@@ -22,7 +21,7 @@ class GameManager {
         this.npcManager = new NPCManager();
         this.shopManager = new ShopManager();
         this.saveManager = new SaveManager();
-        this.battleManager = new BattleManager(this.ctx, this.canvas, this.creaturesManager, this.ui);
+        this.battleManager = new BattleManager(this.ctx, this.canvas, this.creaturesManager, this.ui, this.eventBus);
 
         // 玩家
         this.player = new Player(this.mapManager);

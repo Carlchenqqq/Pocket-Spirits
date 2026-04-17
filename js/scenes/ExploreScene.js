@@ -15,6 +15,12 @@ class ExploreScene extends Scene {
         // 背包模式
         this.bagMode = false;
 
+        // 存档槽选择模式（游戏中保存/读取时选槽）
+        this.slotPickerMode = false;   // true 时显示槽位选择面板
+        this.slotPickerType = null;    // 'save' | 'load'
+        this.slotPickerIndex = 0;      // 当前选中的槽
+        this.slotPickerCardRects = []; // 槽位卡片点击区域
+
         // 图鉴模式
         this.dexMode = false;
         this.dexPage = 'creature';
@@ -92,6 +98,10 @@ class ExploreScene extends Scene {
         }
         if (this.mapPanelMode) {
             this._updateMapPanel(now);
+            return;
+        }
+        if (this.slotPickerMode) {
+            this._updateSlotPicker(now);
             return;
         }
 
@@ -238,6 +248,7 @@ class ExploreScene extends Scene {
         if (this.badgeMode) this._renderBadgePanel();
         if (this.questMode) this._renderQuestPanel();
         if (this.mapPanelMode) this._renderMapPanel();
+        if (this.slotPickerMode) this._renderSlotPicker();
     }
 
     // ========== 游戏菜单 ==========
@@ -314,16 +325,16 @@ class ExploreScene extends Scene {
                 this.questMode = true;
                 this.questScrollIndex = 0;
                 break;
-            case 5: // 保存
-                if (g.saveManager.save(g)) g.ui.showMessage('游戏已保存！');
-                else g.ui.showMessage('保存失败！');
+            case 5: // 保存 → 打开槽选择面板
+                this.slotPickerMode = true;
+                this.slotPickerType = 'save';
+                this.slotPickerIndex = 0;
                 this.gameMenuOpen = false;
                 break;
-            case 6: // 读取
-                if (g.saveManager.hasSave()) {
-                    if (g.saveManager.load(g)) g.ui.showMessage('读取存档成功！');
-                    else g.ui.showMessage('读取存档失败！');
-                } else g.ui.showMessage('没有找到存档');
+            case 6: // 读取 → 打开槽选择面板
+                this.slotPickerMode = true;
+                this.slotPickerType = 'load';
+                this.slotPickerIndex = 0;
                 this.gameMenuOpen = false;
                 break;
             case 7: // 关闭
@@ -1019,7 +1030,7 @@ class ExploreScene extends Scene {
         g.npcManager.loadNPCs(newMap.npcs);
         g.camera.snapTo(g.player.x, g.player.y, g.player.width, g.player.height, newMap.width * g.mapManager.tileSize, newMap.height * g.mapManager.tileSize);
         g.ui.showMessage(`来到了${newMap.name}`);
-        g.saveManager.save(g);
+        g.saveManager.save(g, 0);
     }
 
     _onBattleEnd(result) {
@@ -1059,7 +1070,7 @@ class ExploreScene extends Scene {
                 }
             }
             if (result === 'catch_success') g.creaturesManager.recordCreatureCaught(g.battleManager.caughtCreatureId || 0);
-            try { g.saveManager.save(g); } catch (e) { console.error('自动保存失败:', e); }
+            try { g.saveManager.save(g, 0); } catch (e) { console.error('自动保存失败:', e); }
         } catch (e) { console.error('战斗结束处理异常:', e); }
     }
 
@@ -1103,13 +1114,35 @@ class ExploreScene extends Scene {
 
     // ========== 地图传送面板（世界总览图） ==========
     /**
-     * 世界地图布局定义 - V2 高清版（参考星露谷物语风格）
+     * 世界地图布局定义 - V4 精确物理方向版
      *
-     * 连接拓扑：
-     *   青叶镇 ↔ 青叶野外 ↔ 碧波森林 ↔ 碧波镇 ↔ 迷雾沼泽
-     *                                               ↔ 礁石航道
-     *                                               ↔ 赤岩古道 ↔ 炎阳城 ↔ 废弃矿坑
-     *                                               ↔ 灵渊居秘室
+     * ⚠️ 核心原则：卡片相对位置必须 = 游戏内实际行走方向！
+     *
+     *   ↑ 屏幕上方 = 北 (North)   = 游戏中向上走
+     *   ↓ 屏幕下方 = 南 (South)   = 游戏中向下走
+     *   → 屏幕右方 = 东 (East)    = 游戏中向右走
+     *   ← 屏幕左方 = 西 (West)    = 游戏中向左走
+     *
+     * 实际传送数据（从地图JSON transfers提取，100%准确）：
+     *
+     *   青叶镇(y=13出口) ↓南 → 野外草丛(x=0,y=9-10入口)
+     *   野外草丛(x=29出口) →东 → 碧波森林(x=0,y=10-11入口)
+     *   碧波森林(x=29出口) →东 → 碧波镇(x=0,y=7-8入口)
+     *   碧波镇(x=0出口) ←西 ← 碧波森林
+     *   碧波镇(y=0出口) ↓南 → 迷雾沼泽(y=18入口)
+     *   碧波镇(y=14出口) ↓南 → 礁石航道(y=8-9入口)
+     *   碧波镇(x=19出口) →东 → 赤岩古道(x=1,y=8-9入口)
+     *
+     * 物理拓扑（严格按行走方向）：
+     *
+     *           [青叶镇]                  ← 最北
+     *              ↓ 南
+     * [野外草丛] ——→ [碧波森林] ——→ [碧波镇] ——→ [赤岩古道]
+     *                                    ↙          ↓
+     *                             [迷雾沼泽]    [炎阳城] → [废弃矿坑]
+     *                              (西南)          ↓ 南      (最南)
+     *                           [礁石航道]    [灵渊秘室]
+     *                            (正南)        (东南)
      */
     _getWorldMapLayout() {
         return {
@@ -1119,64 +1152,73 @@ class ExploreScene extends Scene {
                 'yanyang_city', 'abandoned_mine'
             ],
             nodes: null,
-            // 卡片尺寸（高清大卡片）
             cardW: 170,
             cardH: 64,
+            // 连接边（基于实际 transfers 方向）
             edges: [
-                { from: 'qingye_town', to: 'route_001' },
-                { from: 'route_001', to: 'bibo_forest' },
-                { from: 'bibo_forest', to: 'bibo_town' },
-                { from: 'bibo_town', to: 'mist_marsh' },
-                { from: 'bibo_town', to: 'reef_route' },
-                { from: 'bibo_town', to: 'redrock_path' },
-                { from: 'bibo_town', to: 'lingyuan_chamber' },
-                { from: 'route_001', to: 'bibo_town' },
-                { from: 'redrock_path', to: 'yanyang_city' },
-                { from: 'yanyang_city', to: 'abandoned_mine' }
+                { from: 'qingye_town', to: 'route_001' },        // ↓ 南
+                { from: 'route_001', to: 'bibo_forest' },        // → 东
+                { from: 'bibo_forest', to: 'bibo_town' },        // → 东
+                { from: 'bibo_town', to: 'mist_marsh' },         // ↙ 西南 (北口出)
+                { from: 'bibo_town', to: 'reef_route' },         // ↓ 南 (南口出)
+                { from: 'bibo_town', to: 'redrock_path' },       // → 东 (东口出)
+                { from: 'bibo_town', to: 'lingyuan_chamber' },   // 秘室（特殊入口）
+                { from: 'redrock_path', to: 'yanyang_city' },    // ↓ 南
+                { from: 'yanyang_city', to: 'abandoned_mine' }   // ↓ 南
             ]
         };
     }
 
     /**
-     * 计算每张地图卡片的像素坐标（星露谷式树状布局）
+     * 计算卡片坐标（V4 精确物理版）
+     *
+     * row=南北轴（越大越靠南↓），col=东西轴（越大越靠东→）
+     * 每个位置的 row/col 差值 = 实际行走方向
      */
     _buildWorldMapCardLayout() {
         const layout = this._getWorldMapLayout();
         if (layout.nodes) return layout;
 
         const CW = layout.cardW, CH = layout.cardH;
-        const GAP_X = 30, GAP_Y = 20;
+        const GAP_X = 24, GAP_Y = 18;
 
+        // ===== V4: 100% 匹配物理行走方向的坐标 =====
         const positions = {
-            'qingye_town':      { layer: 0, col: 0 },
-            'route_001':        { layer: 0, col: 1 },
-            'bibo_forest':      { layer: 0, col: 2 },
-            'bibo_town':        { layer: 1, col: 2 },
-            'mist_marsh':       { layer: 2, col: 1 },
-            'reef_route':       { layer: 2, col: 3 },
-            'redrock_path':     { layer: 3, col: 2 },
-            'lingyuan_chamber': { layer: 3, col: 3 },
-            'yanyang_city':     { layer: 4, col: 2 },
-            'abandoned_mine':   { layer: 5, col: 2 }
+            // 第一条主线：青叶镇 → 野外 → 森林 → 镇 → 古道（纯向东延伸）
+            'qingye_town':      { row: 0, col: 0 },
+            'route_001':        { row: 1, col: 0 },       // 青叶镇的正南方
+            'bibo_forest':      { row: 1, col: 1 },       // 野外的正东方
+            'bibo_town':        { row: 1, col: 2 },       // 森林的正东方 ★关键修正
+            'redrock_path':     { row: 1, col: 3 },       // 镇的正东方
+
+            // 碧波镇的分支（从中心枢纽向三个方向发散）
+            'mist_marsh':       { row: 2, col: 1 },       // 镇的西南方
+            'reef_route':       { row: 2, col: 2 },       // 镇的正南方
+            'lingyuan_chamber': { row: 2, col: 3 },       // 古道的东南方
+
+            // 南部纵深
+            'yanyang_city':     { row: 3, col: 3 },       // 古道的正南方
+            'abandoned_mine':   { row: 4, col: 3 }        // 城的正南方（最远端）
         };
 
-        let maxLayer = 0;
-        for (const pos of Object.values(positions)) maxLayer = Math.max(maxLayer, pos.layer);
+        let maxRow = 0, maxCol = 0;
+        for (const pos of Object.values(positions)) {
+            maxRow = Math.max(maxRow, pos.row);
+            maxCol = Math.max(maxCol, pos.col);
+        }
 
         const MARGIN = 40;
         const nodes = {};
         for (const [id, pos] of Object.entries(positions)) {
-            const baseX = MARGIN + (pos.col * (CW + GAP_X));
-            const baseY = MARGIN + (pos.layer * (CH + GAP_Y));
-            nodes[id] = { x: baseX, y: baseY };
+            nodes[id] = {
+                x: MARGIN + pos.col * (CW + GAP_X),
+                y: MARGIN + pos.row * (CH + GAP_Y)
+            };
         }
 
-        const canvasW = MARGIN * 2 + 4 * (CW + GAP_X);
-        const canvasH = MARGIN * 2 + maxLayer * (CH + GAP_Y) + CH;
-
         layout.nodes = nodes;
-        layout.canvasW = canvasW;
-        layout.canvasH = canvasH;
+        layout.canvasW = MARGIN * 2 + maxCol * (CW + GAP_X) + CW;
+        layout.canvasH = MARGIN * 2 + maxRow * (CH + GAP_Y) + CH;
         return layout;
     }
 
@@ -1555,6 +1597,209 @@ class ExploreScene extends Scene {
 
         this.mapPanelMode = false;
         g.ui.showMessage(`传送到了${newMap.name}`);
-        try { g.saveManager.save(g); } catch (e) { console.error('传送后保存失败:', e); }
+        try { g.saveManager.save(g, 0); } catch (e) { console.error('传送后保存失败:', e); }
+    }
+
+    // ========== 存档槽位选择器（游戏中保存/读取） ==========
+
+    /** 计算存档选择器卡片位置 */
+    _getSlotPickerCardRects(W, H) {
+        const panelW = Math.min(340, W - 40);
+        const panelH = 150;
+        const px = (W - panelW) / 2;
+        const py = (H - panelH) / 2 + 20;
+        const cardW = (panelW - 25) / 3;
+        const cardH = panelH - 50;
+        const cardY = py + 32;
+        const rects = [];
+        for (let i = 0; i < 3; i++) {
+            const cx = px + 8 + i * (cardW + 3);
+            rects.push({ x: cx, y: cardY, w: cardW, h: cardH });
+        }
+        return rects;
+    }
+
+    _updateSlotPicker(now) {
+        const g = this.game;
+        const slotCount = g.saveManager.getSlotCount();
+
+        // 方向键切换槽位（使用 isJustPressed 检测按键）
+        if (g.input.isJustPressed('ArrowLeft') || g.input.isJustPressed('KeyA')) {
+            this.slotPickerIndex = (this.slotPickerIndex - 1 + slotCount) % slotCount;
+            g.input.lastActionTime = now;
+        } else if (g.input.isJustPressed('ArrowRight') || g.input.isJustPressed('KeyD')) {
+            this.slotPickerIndex = (this.slotPickerIndex + 1) % slotCount;
+            g.input.lastActionTime = now;
+        }
+
+        // 鼠标点击检测
+        if (g.input.hasPendingClick()) {
+            const click = g.input.getClick();
+            if (!click) return;
+
+            // 实时计算卡片位置（避免依赖渲染时填充的 slotPickerCardRects）
+            const cardRects = this._getSlotPickerCardRects(g.canvas.width, g.canvas.height);
+
+            // 检查是否点击了某个槽位卡片
+            for (let i = 0; i < cardRects.length; i++) {
+                const rect = cardRects[i];
+                if (click.x >= rect.x && click.x <= rect.x + rect.w &&
+                    click.y >= rect.y && click.y <= rect.y + rect.h) {
+                    this.slotPickerIndex = i;
+                    // 点击后直接执行保存/读取
+                    this._confirmSlotPickerAction(now);
+                    return;
+                }
+            }
+        }
+
+        // 确认
+        if (g.input.isConfirmPressed(now)) {
+            this._confirmSlotPickerAction(now);
+        }
+
+        // 取消
+        if (g.input.isCancelPressed(now)) {
+            g.input.lastActionTime = now;
+            this.slotPickerMode = false;
+        }
+    }
+
+    /** 确认槽位选择并执行保存/读取 */
+    _confirmSlotPickerAction(now) {
+        const g = this.game;
+        g.input.lastActionTime = now;
+        const slot = this.slotPickerIndex;
+
+        if (this.slotPickerType === 'save') {
+            if (g.saveManager.save(g, slot)) {
+                g.ui.showMessage(`已保存到存档 ${slot + 1}！`);
+            } else {
+                g.ui.showMessage('保存失败！');
+            }
+        } else if (this.slotPickerType === 'load') {
+            if (g.saveManager.hasSlotSave(slot)) {
+                if (g.saveManager.load(g, slot)) {
+                    g.ui.showMessage(`已从存档 ${slot + 1} 读取！`);
+                } else {
+                    g.ui.showMessage('读取失败！');
+                }
+            } else {
+                g.ui.showMessage(`存档 ${slot + 1} 为空`);
+            }
+        }
+        this.slotPickerMode = false;
+    }
+
+    _renderSlotPicker() {
+        const ctx = this.game.ctx;
+        const W = this.game.W, H = this.game.H;
+        const g = this.game;
+
+        const panelW = Math.min(360, W - 40);
+        const panelH = 150;
+        const px = (W - panelW) / 2;
+        const py = (H - panelH) / 2 + 10;
+
+        // 半透明背景遮罩
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, W, H);
+
+        // 面板背景
+        ctx.fillStyle = 'rgba(10, 15, 35, 0.95)';
+        ctx.strokeStyle = this.slotPickerType === 'save' ? 'rgba(76, 175, 80, 0.6)' : 'rgba(100, 150, 255, 0.6)';
+        ctx.lineWidth = 2;
+        this._roundRect(ctx, px, py, panelW, panelH, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        // 标题
+        const titleText = this.slotPickerType === 'save' ? '— 保存游戏 —' : '— 读取存档 —';
+        ctx.fillStyle = this.slotPickerType === 'save' ? '#81C784' : '#6ab7ff';
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(titleText, W / 2, py + 22);
+
+        // 3个槽位卡片
+        const cardW = (panelW - 25) / 3;
+        const cardH = panelH - 50;
+        const cardY = py + 32;
+        const summaries = g.saveManager.getSlotSummaries();
+
+        // 清空并重新记录点击区域
+        this.slotPickerCardRects = [];
+
+        for (let i = 0; i < 3; i++) {
+            const cx = px + 8 + i * (cardW + 3);
+            const summary = summaries[i];
+            const selected = i === this.slotPickerIndex;
+
+            // 记录点击区域
+            this.slotPickerCardRects.push({ x: cx, y: cardY, w: cardW, h: cardH });
+
+            if (selected) {
+                ctx.fillStyle = 'rgba(80, 140, 255, 0.2)';
+                ctx.strokeStyle = '#6ab7ff';
+                ctx.lineWidth = 2;
+            } else {
+                ctx.fillStyle = summary.empty ? 'rgba(30, 35, 60, 0.8)' : 'rgba(30, 45, 80, 0.65)';
+                ctx.strokeStyle = 'rgba(80, 110, 180, 0.3)';
+                ctx.lineWidth = 1;
+            }
+            this._roundRect(ctx, cx, cardY, cardW, cardH, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // 鼠标悬停效果
+            if (g.input.mouseX >= cx && g.input.mouseX <= cx + cardW &&
+                g.input.mouseY >= cardY && g.input.mouseY <= cardY + cardH) {
+                ctx.fillStyle = 'rgba(100, 160, 255, 0.15)';
+                this._roundRect(ctx, cx, cardY, cardW, cardH, 6);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = selected ? '#6ab7ff' : '#8899bb';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`存档 ${i + 1}`, cx + cardW / 2, cardY + 16);
+
+            if (summary.empty) {
+                ctx.fillStyle = '#556';
+                ctx.font = '10px monospace';
+                ctx.fillText('— 空 —', cx + cardW / 2, cardY + cardH / 2 + 4);
+            } else {
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#aabbdd';
+                ctx.font = '8px monospace';
+                ctx.fillText(summary.timeStr, cx + cardW / 2, cardY + 32);
+
+                const mapNames = {
+                    qingye_town: '青叶镇', town1: '青叶镇', route1: '一号道路',
+                    forest_1: '迷雾森林', cave_1: '岩石洞穴', city_gym: '道馆城',
+                    port_town: '港口镇', mountain_path: '山间小径',
+                    volcanic_cave: '火山洞窟', ice_cave: '冰之洞窟',
+                    desert_ruins: '沙漠遗迹', sky_tower: '天空塔',
+                };
+                ctx.fillStyle = '#99bbee';
+                ctx.fillText(mapNames[summary.mapId] || summary.mapId || '?', cx + cardW / 2, cardY + 46);
+
+                ctx.fillStyle = '#88aacc';
+                ctx.font = '8px monospace';
+                ctx.fillText(`Lv.${summary.topLevel} 🏅${summary.badgeCount} 💰${summary.gold}`, cx + cardW / 2, cardY + 60);
+            }
+
+            if (selected) {
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 12px monospace';
+                ctx.fillText('▼', cx + cardW / 2, cardY + cardH + 12);
+            }
+        }
+
+        // 底部提示
+        ctx.fillStyle = '#7799BB';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('← → 选择 / 点击卡片   确认 执行   取消 返回', W / 2, py + panelH + 16);
+        ctx.textAlign = 'left';
     }
 }

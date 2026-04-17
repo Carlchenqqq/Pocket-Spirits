@@ -259,12 +259,12 @@ class BattleRenderer {
     }
 
     // ─── 结果画面 ───
-    static get resultButtonLayout() {
+    _getResultButtonLayout() {
         const btnW = 120, btnH = 35;
         return {
             btnW, btnH,
-            btnX: (1280 - btnW) / 2,
-            btnY: 960 / 2 + 40
+            btnX: (this.W - btnW) / 2,
+            btnY: this.H / 2 + 40
         };
     }
 
@@ -298,7 +298,7 @@ class BattleRenderer {
         }
 
         // 继续按钮
-        const { btnX, btnY, btnW, btnH } = BattleRenderer.resultButtonLayout;
+        const { btnX, btnY, btnW, btnH } = this._getResultButtonLayout();
         ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
         ctx.fillRect(btnX, btnY, btnW, btnH);
         ctx.strokeStyle = '#FFD700';

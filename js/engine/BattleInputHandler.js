@@ -8,12 +8,22 @@ class BattleInputHandler {
      * 处理菜单/技能选择阶段的输入
      * @returns {string|null} 语义化动作：'attack'|'catch'|'switch'|'run'|'confirm_skill'|'back'|null
      */
-    static handleMenuInput(input, phase, menuIndex, skillIndex, now) {
+    static handleMenuInput(input, phase, menuIndex, skillIndex, now, canvasWidth, canvasHeight) {
         // ─── 点击处理 ───
         if (input.hasPendingClick()) {
             const click = input.getClick();
             if (click) {
-                if (phase === 'result') return 'confirm_result';
+                // result 阶段：检测按钮点击
+                if (phase === 'result') {
+                    const btnW = 120, btnH = 35;
+                    const btnX = (canvasWidth - btnW) / 2;
+                    const btnY = canvasHeight / 2 + 40;
+                    if (click.x >= btnX && click.x <= btnX + btnW &&
+                        click.y >= btnY && click.y <= btnY + btnH) {
+                        return 'confirm_result';
+                    }
+                    return null;
+                }
 
                 // 菜单阶段：坐标检测
                 if (phase === 'menu') {

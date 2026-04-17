@@ -21,6 +21,8 @@ class InputManager {
         this.clickY = -1;       // 点击的画布坐标 Y
         this.hasClick = false;  // 是否有待处理的点击
         this.clickConsumed = false; // 点击是否已被消费
+        this.mouseX = -1;       // 鼠标当前位置 X
+        this.mouseY = -1;       // 鼠标当前位置 Y
 
         this._initKeyboard();
         this._initClick();
@@ -51,6 +53,13 @@ class InputManager {
                 y: (clientY - rect.top) * scaleY
             };
         };
+
+        // 鼠标移动（追踪位置用于悬停效果）
+        this.canvas.addEventListener('mousemove', (e) => {
+            const pos = getCanvasPos(e.clientX, e.clientY);
+            this.mouseX = pos.x;
+            this.mouseY = pos.y;
+        });
 
         // 鼠标点击
         this.canvas.addEventListener('mousedown', (e) => {

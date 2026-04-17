@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- Content Security Policy: 限制资源加载来源 -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self';">
     <title>精灵纪元 - Pocket Spirits</title>
     <link rel="stylesheet" href="css/style.css?v=17">
 </head>
@@ -14,9 +17,9 @@
     <script src="js/config.js?v=17"></script>
     <script src="js/engine/EventBus.js?v=17"></script>
     <script src="js/engine/SceneManager.js?v=17"></script>
-    <script src="js/engine/BattleEngine.js?v=17"></script>
-    <script src="js/engine/BattleRenderer.js?v=17"></script>
-    <script src="js/engine/BattleInputHandler.js?v=17"></script>
+    <script src="js/engine/BattleEngine.js?v=18"></script>
+    <script src="js/engine/BattleRenderer.js?v=18"></script>
+    <script src="js/engine/BattleInputHandler.js?v=18"></script>
     <script src="js/engine/DialogEngine.js?v=17"></script>
     <script src="js/engine/DialogRenderer.js?v=17"></script>
     <script src="js/engine/DialogInputHandler.js?v=17"></script>
@@ -38,7 +41,7 @@
     <script src="js/npc.js?v=17"></script>
     <script src="js/shop.js?v=17"></script>
     <script src="js/save.js?v=17"></script>
-    <script src="js/battle.js?v=17"></script>
+    <script src="js/battle.js?v=18"></script>
     <script src="js/game.js?v=17"></script>
     <script src="js/main.js?v=17"></script>
 </body>
