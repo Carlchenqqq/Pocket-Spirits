@@ -197,8 +197,12 @@ class CreaturesManager {
             currentHP: stats.hp,
             maxHP: stats.hp,
             skills: skills,
+            evolution: data.evolution ? { ...data.evolution } : null,
             // 战斗中的临时属性修正
-            statModifiers: { attack: 0, defense: 0, speed: 0 }
+            statModifiers: { attack: 0, defense: 0, speed: 0 },
+            // 状态异常
+            status: null,
+            statusTurns: 0
         };
     }
 
@@ -304,6 +308,8 @@ class CreaturesManager {
             c.currentHP = c.maxHP;
             c.skills.forEach(s => { s.currentPP = s.pp; });
             c.statModifiers = { attack: 0, defense: 0, speed: 0 };
+            c.status = null;
+            c.statusTurns = 0;
         });
     }
 
@@ -340,6 +346,134 @@ class CreaturesManager {
             }
         }
         return leveledUp;
+    }
+
+    // ════════════════════════════════════
+    //   进化系统
+    // ════════════════════════════════════
+
+    /** 检查精灵是否可以进化（等级进化） */
+    checkEvolution(creature) {
+        if (!creature.evolution || !creature.evolution.nextId) return null;
+
+        const evo = creature.evolution;
+
+        if (evo.method === 'level' && creature.level >= evo.level) {
+            return evo.nextId;
+        }
+
+        return null;
+    }
+
+    /** 检查队伍中所有精灵是否可以进化（等级进化），返回可进化列表 */
+    checkPartyEvolutions() {
+        const evolvable = [];
+        for (const creature of this.party) {
+            const nextId = this.checkEvolution(creature);
+            if (nextId) {
+                evolvable.push({ creature, nextId });
+            }
+        }
+        return evolvable;
+    }
+
+    /** 进化精灵（执行进化，修改精灵数据） */
+    evolveCreature(creature) {
+        const nextId = this.checkEvolution(creature);
+        if (!nextId) return false;
+
+        const nextData = this.getCreatureData(nextId);
+        if (!nextData) return false;
+
+        // 保留 UID、经验值、当前HP比例
+        const hpRatio = creature.maxHP > 0 ? creature.currentHP / creature.maxHP : 1;
+        const oldName = creature.name;
+
+        creature.id = nextId;
+        creature.name = nextData.name;
+        creature.type = nextData.type;
+        creature.rarity = nextData.rarity;
+
+        // 重新计算属性（基于新种族值）
+        const newStats = this.calcStats(nextData.baseStats, creature.level);
+        creature.baseStats = { ...nextData.baseStats };
+        creature.stats = newStats;
+        creature.maxHP = newStats.hp;
+        creature.currentHP = Math.floor(creature.maxHP * hpRatio);
+
+        // 更新进化信息
+        creature.evolution = nextData.evolution ? { ...nextData.evolution } : null;
+
+        // 保留已有技能，添加新技能（如果有）
+        if (nextData.skills) {
+            nextData.skills.forEach(sid => {
+                if (!creature.skills.find(s => s.id === sid)) {
+                    const skillData = this.getSkillData(sid);
+                    if (skillData) {
+                        creature.skills.push({ ...skillData, currentPP: skillData.pp });
+                    }
+                }
+            });
+        }
+
+        // 记录到图鉴
+        this.recordCreatureEncounter(nextId);
+
+        return { oldName, newName: creature.name };
+    }
+
+    /** 使用进化石 */
+    useEvolutionStone(creature, stoneType) {
+        if (!creature.evolution) return null;
+        if (creature.evolution.method !== `stone_${stoneType}`) return null;
+
+        const nextId = creature.evolution.nextId;
+        if (!nextId) return null;
+
+        const nextData = this.getCreatureData(nextId);
+        if (!nextData) return null;
+
+        // 保留 UID、经验值、当前HP比例
+        const hpRatio = creature.maxHP > 0 ? creature.currentHP / creature.maxHP : 1;
+        const oldName = creature.name;
+
+        creature.id = nextId;
+        creature.name = nextData.name;
+        creature.type = nextData.type;
+        creature.rarity = nextData.rarity;
+
+        // 重新计算属性（基于新种族值）
+        const newStats = this.calcStats(nextData.baseStats, creature.level);
+        creature.baseStats = { ...nextData.baseStats };
+        creature.stats = newStats;
+        creature.maxHP = newStats.hp;
+        creature.currentHP = Math.floor(creature.maxHP * hpRatio);
+
+        // 更新进化信息
+        creature.evolution = nextData.evolution ? { ...nextData.evolution } : null;
+
+        // 保留已有技能，添加新技能（如果有）
+        if (nextData.skills) {
+            nextData.skills.forEach(sid => {
+                if (!creature.skills.find(s => s.id === sid)) {
+                    const skillData = this.getSkillData(sid);
+                    if (skillData) {
+                        creature.skills.push({ ...skillData, currentPP: skillData.pp });
+                    }
+                }
+            });
+        }
+
+        // 记录到图鉴
+        this.recordCreatureEncounter(nextId);
+
+        return { oldName, newName: creature.name };
+    }
+
+    /** 检查精灵是否可以通过特定进化石进化 */
+    canEvolveWithStone(creature, stoneType) {
+        if (!creature.evolution) return false;
+        return creature.evolution.method === `stone_${stoneType}`;
     }
 
     /** 添加道具到背包 */
@@ -872,6 +1006,246 @@ class CreaturesManager {
                     'PPPPPPPPPPPPPPPPGPPPPPPPPPPPPPPP',
                 ],
                 palette: {"D":"#7038F8","P":"#5020C0","W":"#FFFFFF","G":"#FFD700","R":"#FF2020",".":null}
+            },
+
+            // Sprite 13 - 烈焰狐 (Fire Fox, evolution of 焰尾狐)
+            // 调色板：O(橙), R(红), W(白), E(黑), Y(黄)
+            13: {
+                pixels: [
+                    '......RRRRRRRRRRRRRRRRRRRRRRR.....',
+                    '.....RROOOOOOOOOOOOOOOOOOORRR.....',
+                    '.....ROOOOOOOOOOOOOOOOOOOORRR.....',
+                    '....ROOOOOOOOOOOOOOOOOOOOOORRR....',
+                    '....ROOOOWWOOOOOOOOWWOOOOOORRR....',
+                    '....ROOOOWWOOOOOOOOWWOOOOOORRR....',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOORRR...',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOORRR..',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '..ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '..ROOOOOOOOOOOWWWWWOOOOOOOOOOORRR.',
+                    '..ROOOOOOOOOOWWEEWEEWWOOOOOOOORRR.',
+                    '..ROOOOOOOOOOWWWWWWWWWOOOOOOOORRR.',
+                    '..ROOOOOOOOOOOOWWWOOOOOOOOOOOORRR.',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '.....ROOOOOOOOOOOOOOOOOOOOOOORRR..',
+                    '.....RRRRRRRRRRRRRRRRRRRRRRRRRRR..',
+                    '................................',
+                ],
+                palette: {"O":"#FF6B35","R":"#E63946","W":"#F1FAEE","E":"#1D3557","Y":"#FFD166",".":null}
+            },
+
+            // Sprite 15 - 海王蛙 (Sea King Frog, evolution of 水泡蛙)
+            // 调色板：B(蓝), W(白), S(银), D(深蓝), E(黑)
+            15: {
+                pixels: [
+                    '................................',
+                    '............DDDDDDDDDDDDDDDDD....',
+                    '...........DBBBBBBBBBBBBBBBBDD...',
+                    '..........DBBBBBBBBBBBBBBBBBDD...',
+                    '.........DBBBBBBBBBBBBBBBBBBBDD..',
+                    '.........DBBBBBSBBBSBBBBBBBDDDD..',
+                    '........DBBBBBBBBBBBBBBBBBBBBDD..',
+                    '........DBBBBBBBBBBBBBBBBBBBBDD..',
+                    '.......DBBBBBBWEBBBBWEBBBBBBDDD..',
+                    '.......DBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '.......DBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '.......DBBBBBBBSSSSSSBBBBBBBDDD..',
+                    '......DBBBBBBBSSSSSSSSBBBBBBDDD..',
+                    '......DBBBBBBSSSWWWSSSSBBBBBDDDD.',
+                    '......DBBBBBBSSWWWWSSSSBBBBBDDDD.',
+                    '......DBBBBBBSSSWWWSSSSBBBBBDDDD.',
+                    '.....DBBBBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '.....DBBBBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '.....DBBBBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '.....DBBBBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '....DBBBBBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '....DBBBBBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '....DBBBBBBBBBBBBBBBBBBBBBBBBDDD..',
+                    '...DBBBBBBBBBBBBBBBBBBBBBBBBBBDD..',
+                    '...DBBBBBBBWWWWWWWWWWWWBBBBBBDD..',
+                    '...DBBBBBBWWWWWWWWWWWWWWBBBBBDD..',
+                    '...DBBBBBBWWWWWWWWWWWWWWBBBBBDD..',
+                    '...DBBBBBBWWWWWWWWWWWWWWBBBBBDD..',
+                    '...DDDDDDDDDDDDDDDDDDDDDDDDDDDD..',
+                    '...DDDDDDDDDDDDDDDDDDDDDDDDDDDD..',
+                    '................................',
+                    '................................',
+                ],
+                palette: {"B":"#6890F0","W":"#FFFFFF","S":"#A0C4FF","D":"#3A6BC5","E":"#1A1A1A",".":null}
+            },
+
+            // Sprite 17 - 森灵鹿 (Forest Spirit Deer, evolution of 芽叶兔/花仙子)
+            // 调色板：G(绿), L(浅绿), W(白), H(棕), E(黑)
+            17: {
+                pixels: [
+                    '..........H..HH....HH..H..........',
+                    '..........H.HHHH..HHHH.H..........',
+                    '..........H.HHHHHHHHHH.H..........',
+                    '..........HH.HHHHHHHH.HH..........',
+                    '...........H.HHHHHHHH.H...........',
+                    '...........HH.HHHHHHH.HH..........',
+                    '............HHHHHHHHHHH...........',
+                    '..........LLGGGGGGGGGGGGL..........',
+                    '.........LLGGGGGGGGGGGGGGL.........',
+                    '.........LGGGGGGGGGGGGGGGGG........',
+                    '........LGGGGGGGGGGGGGGGGGGG.......',
+                    '........LGGGGGGGGLGGGGGGGGG.......',
+                    '.......LGGGGGGGGGLLGGGGGGGGG......',
+                    '.......LGGGGGGGGGGGGGGGGGGGGG.....',
+                    '.......LGGGGGEWGGGWEGGGGGGGG......',
+                    '.......LGGGGGGGGGGGGGGGGGGGGG.....',
+                    '......LGGGGGGGGGGGGGGGGGGGGGGG....',
+                    '......LGGGGGGGGGGGGGGGGGGGGGGG....',
+                    '......LGGGGGGGGGGGGGGGGGGGGGGG....',
+                    '.....LGGGGGGGGGLGLGGGGGGGGGGGG....',
+                    '.....LGGGGGGGGGGGGGGGGGGGGGGGG....',
+                    '.....LGGGGGGGGGGGGGGGGGGGGGGGG....',
+                    '.....LGGGGGGGGGGGGGGGGGGGGGGGG....',
+                    '....LGGGGGGGGGGGGGGGGGGGGGGGGGG...',
+                    '....LGGGGGGGGGGGGGGGGGGGGGGGGGG...',
+                    '...LGGGGGGGGGGGGGGGGGGGGGGGGGGG...',
+                    '...LGGGGGGGGGGGGGGGGGGGGGGGGGGG...',
+                    '...LGGGGGGGGGGGGGGGGGGGGGGGGGGG...',
+                    '...LLLLLLLLLLLLLLLLLLLLLLLLLLLLL..',
+                    '...LLLLLLLLLLLLLLLLLLLLLLLLLLLLL..',
+                    '................................',
+                    '................................',
+                ],
+                palette: {"G":"#78C850","L":"#A8E06C","W":"#FFFFFF","H":"#8B6914","E":"#1A1A1A",".":null}
+            },
+
+            // Sprite 19 - 焰帝狐 (Flame Emperor Fox, evolution of 烈焰狐, final form)
+            // 调色板：O(橙), R(红), W(白), E(黑), Y(黄), P(紫)
+            19: {
+                pixels: [
+                    '..........YYYYYYYYYYYYYYYYYY.......',
+                    '.........YOWWYOWWYOWWYOWWYO.......',
+                    '.........YOWWYOWWYOWWYOWWYO.......',
+                    '..........YYYYYYYYYYYYYYYYYY.......',
+                    '..........YYYYYYYYYYYYYYYYYY.......',
+                    '......RRRRRRRRRRRRRRRRRRRRRRR......',
+                    '.....RROOOOOOOOOOOOOOOOOOOORRR....',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOORRR...',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOORRR..',
+                    '...ROOOOOOWWOOOOOOOOWWOOOOOOOORRR.',
+                    '...ROOOOOOWWOOOOOOOOWWOOOOOOOORRR.',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '..ROOOOOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '..ROOOOOOOOOOOOWWWWWOOOOOOOOOOORRR.',
+                    '..ROOOOOOOOOOWWEEWEEWWOOOOOOOORRR.',
+                    '..ROOOOOOOOOOWWWWWWWWWOOOOOOOORRR.',
+                    '..ROOOOOOOOOOOOWWWOOOOOOOOOOOORRR.',
+                    '..ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '...ROOOOOOOOOOOOOOOOOOOOOOOOOOORRR',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '....ROOOOOOOOOOOOOOOOOOOOOOOOORRR.',
+                    '.....ROOOOOOOOOOOOOOOOOOOOOOORRR..',
+                    '.....RRRRRRRRRRRRRRRRRRRRRRRRRRR..',
+                    '................................',
+                    '................................',
+                ],
+                palette: {"O":"#FF6B35","R":"#E63946","W":"#F1FAEE","E":"#1D3557","Y":"#FFD166","P":"#9B59B6",".":null}
+            },
+
+            // Sprite 21 - 磁力怪 (Magnet Monster, evolution of 雷鹰)
+            // 调色板：Y(黄), E(黑), C(青), W(白), G(灰)
+            21: {
+                pixels: [
+                    '................................',
+                    '..........YYYYYYYYYYYYYYYYYYY.....',
+                    '.........YYYYYYYYYYYYYYYYYYYYY....',
+                    '........YYYYYYYYYYYYYYYYYYYYYYY...',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYY..',
+                    '.......YYYYYYYEEYYYYYEEYYYYYYYYY..',
+                    '.......YYYYYYEEEEYYYYEEEEYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYEYYYYYYEYYYYYYYYYYYY.',
+                    '.......YYYYYEEEEEEEEEEEEYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '.......YYYYYYYYYYYYYYYYYYYYYYYYYY.',
+                    '................................',
+                    '................................',
+                    '................................',
+                ],
+                palette: {"Y":"#F8D030","E":"#1A1A1A","C":"#00CED1","W":"#FFFFFF","G":"#A0A0A0",".":null}
+            },
+
+            // Sprite 23 - 梦魇狼 (Nightmare Wolf, evolution of 暗影蝠)
+            // 调色板：P(紫), R(红), D(深紫), T(暗), E(黑)
+            23: {
+                pixels: [
+                    '................................',
+                    '..........DDDDDDDDDDDDDDDDDD.....',
+                    '.........DPPPPPPPPPPPPPPPPDD.....',
+                    '........DPPPPPPPPPPPPPPPPPDDD....',
+                    '.......DPPPPPPPPPPPPPPPPPPPPDD...',
+                    '.......DPPPPPPPPPPPPPPPPPPPPDD...',
+                    '.......DPPPPRPPPPPPPPPRPPPPPPDD..',
+                    '.......DPPPRRRPPPPPPPRRRPPPPPDD..',
+                    '.......DPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '.......DPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '.......DPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '.......DPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '.......DPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '.......DPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '......DPPPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '......DPPPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '......DPPPPPPPPPPPPPPPPPPPPPPPDD..',
+                    '.....DPPPPPPPPPPPPPPPPPPPPPPPPPDD.',
+                    '.....DPPPPPPPPPPPPPPPPPPPPPPPPPDD.',
+                    '.....DPPPPPPPPPPPPPPPPPPPPPPPPPDD.',
+                    '....DPPPPPPPPPPPPPPPPPPPPPPPPPPDD.',
+                    '....DPPPPPPPPPPPPPPPPPPPPPPPPPPDD.',
+                    '...DPPPPPPPPPPPPPPPPPPPPPPPPPPPDD.',
+                    '...DPPPPPPPPPPPPPPPPPPPPPPPPPPPDD.',
+                    '...DPPPPPPPPPPPPPPPPPPPPPPPPPPPDD.',
+                    '...DDDDDDDDDDDDDDDDDDDDDDDDDDDD..',
+                    '...DDDDDDDDDDDDDDDDDDDDDDDDDDDD..',
+                    '...DDDDDDDDDDDDDDDDDDDDDDDDDDDD..',
+                    '................................',
+                    '................................',
+                    '................................',
+                    '................................',
+                ],
+                palette: {"P":"#705898","R":"#FF2020","D":"#4A2080","T":"#2D1B4E","E":"#1A1A1A",".":null}
             },
 
         };

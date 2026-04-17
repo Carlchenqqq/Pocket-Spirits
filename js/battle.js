@@ -133,6 +133,8 @@ class BattleManager {
                 const newCreature = aliveCreatures[index];
                 this.engine.state.playerCreature = newCreature;
                 newCreature.statModifiers = { attack: 0, defense: 0, speed: 0 };
+                newCreature.status = null;
+                newCreature.statusTurns = 0;
                 this.engine.addLog(`上吧，${newCreature.name}！`);
                 this._enemyTurn();
             } else {
@@ -192,15 +194,21 @@ class BattleManager {
         const player = state.playerCreature;
         const enemy = state.enemyCreature;
 
+        // 状态异常检查：是否可以行动
+        const actCheck = this.engine.canAct(player);
+        if (!actCheck.canAct) {
+            this.engine.addLog(actCheck.reason);
+            this._startAnim(800, callback);
+            return;
+        }
+
         skill.currentPP--;
         this.engine.addLog(`${player.name}使用了${skill.name}！`);
 
-        // 技能效果
+        // 技能效果（状态施加等）
         const effectMsg = this.engine.applySkillEffect(skill, player, enemy);
         if (effectMsg) {
             this.engine.addLog(effectMsg);
-            this._startAnim(800, callback);
-            return;
         }
 
         // V1: 伤害计算现在返回对象 {damage, isCritical, isMissed, typeEffectText}
@@ -211,7 +219,7 @@ class BattleManager {
             this.engine.addLog(`但是没有命中！`);
             this._startAnim(800, () => {
                 this.shakeTarget = null;
-                this._enemyTurn(); // 未命中敌人仍然反击
+                callback();
             });
             return;
         }
@@ -254,6 +262,14 @@ class BattleManager {
         const enemy = state.enemyCreature;
         const player = state.playerCreature;
 
+        // 状态异常检查：是否可以行动
+        const actCheck = this.engine.canAct(enemy);
+        if (!actCheck.canAct) {
+            this.engine.addLog(actCheck.reason);
+            this._startAnim(800, callback);
+            return;
+        }
+
         const skill = this.engine.aiSelectSkill(enemy, player.type);
         if (!skill) { callback(); return; }
 
@@ -263,8 +279,6 @@ class BattleManager {
         const effectMsg = this.engine.applySkillEffect(skill, enemy, player);
         if (effectMsg) {
             this.engine.addLog(effectMsg);
-            this._startAnim(800, callback);
-            return;
         }
 
         // V1: 敌人攻击也使用新的对象返回格式
@@ -356,6 +370,8 @@ class BattleManager {
             this._startAnim(1000, () => {
                 state.playerCreature = nextAlive;
                 nextAlive.statModifiers = { attack: 0, defense: 0, speed: 0 };
+                nextAlive.status = null;
+                nextAlive.statusTurns = 0;
                 this.engine.setPhase('menu');
             });
         } else {
@@ -367,6 +383,28 @@ class BattleManager {
 
     _checkBattleEnd() {
         if (this.engine.getResult()) return;
+
+        // 回合结束：处理双方状态异常结算
+        const state = this.engine.state;
+        const playerStatusMsgs = this.engine.processEndOfTurnStatus(state.playerCreature);
+        const enemyStatusMsgs = this.engine.processEndOfTurnStatus(state.enemyCreature);
+
+        // 记录状态异常消息到日志
+        if (playerStatusMsgs) {
+            playerStatusMsgs.forEach(msg => this.engine.addLog(msg));
+        }
+        if (enemyStatusMsgs) {
+            enemyStatusMsgs.forEach(msg => this.engine.addLog(msg));
+        }
+
+        // 检查状态异常是否导致死亡
+        if (state.playerCreature.currentHP <= 0) {
+            this.engine.addLog(`${state.playerCreature.name}因状态异常倒下了！`);
+        }
+        if (state.enemyCreature.currentHP <= 0) {
+            this.engine.addLog(`${state.enemyCreature.name}因状态异常倒下了！`);
+        }
+
         const result = this.engine.checkBattleEnd();
         if (result) {
             this.engine.setPhase(result === 'win' || result === 'lose' ? 'result' : 'menu');

@@ -114,6 +114,9 @@ class BattleRenderer {
         ctx.font = '12px monospace';
         ctx.fillText(`Lv.${c.level}`, 410, 40);
 
+        // 状态异常图标
+        this._renderStatusIcon(ctx, c.status, 370, 28);
+
         ctx.fillStyle = cm.getTypeColor(c.type);
         ctx.font = '11px monospace';
         ctx.fillText(c.type, 290, 54);
@@ -142,6 +145,9 @@ class BattleRenderer {
         ctx.font = '12px monospace';
         ctx.fillText(`Lv.${c.level}`, 180, 300);
 
+        // 状态异常图标
+        this._renderStatusIcon(ctx, c.status, 145, 288);
+
         ctx.fillStyle = cm.getTypeColor(c.type);
         ctx.font = '11px monospace';
         ctx.fillText(c.type, 20, 314);
@@ -160,6 +166,36 @@ class BattleRenderer {
             ctx.fillStyle = '#4169E1';
             ctx.fillRect(20, 334, 220 * expRatio, 4);
         }
+    }
+
+    /** 渲染状态异常图标 */
+    _renderStatusIcon(ctx, status, x, y) {
+        if (!status) return;
+
+        const statusConfig = {
+            poison:   { symbol: 'PSN', color: '#A040A0' },
+            burn:     { symbol: 'BRN', color: '#F08030' },
+            paralyze: { symbol: 'PAR', color: '#F8D030' },
+            freeze:   { symbol: 'FRZ', color: '#98D8D8' },
+            sleep:    { symbol: 'SLP', color: '#A8A878' }
+        };
+
+        const config = statusConfig[status];
+        if (!config) return;
+
+        // 背景框
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(x, y, 30, 14);
+        ctx.strokeStyle = config.color;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, 30, 14);
+
+        // 文字
+        ctx.fillStyle = config.color;
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(config.symbol, x + 15, y + 11);
+        ctx.textAlign = 'left';
     }
 
     // ─── 菜单 ───

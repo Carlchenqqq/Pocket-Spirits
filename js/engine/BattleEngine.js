@@ -34,6 +34,15 @@ const FULL_TYPE_CHART = {
 };
 
 class BattleEngine {
+    // 状态异常配置
+    static STATUS_EFFECTS = {
+        poison:   { name: '中毒', turnDamage: 0.0625, catchMod: 1.5, canAct: true },
+        burn:     { name: '烧伤', turnDamage: 0.0625, catchMod: 1.5, canAct: true, atkMod: 0.5 },
+        paralyze: { name: '麻痹', turnDamage: 0, catchMod: 1.5, canAct: true, speedMod: 0.25, actChance: 0.75 },
+        freeze:   { name: '冰冻', turnDamage: 0, catchMod: 2.5, canAct: false, thawChance: 0.2 },
+        sleep:    { name: '睡眠', turnDamage: 0, catchMod: 2.5, canAct: false, wakeChance: 0.33 }
+    };
+
     constructor(eventBus) {
         this.eventBus = eventBus || null;
         this.state = null;
@@ -162,8 +171,13 @@ class BattleEngine {
 
         // ===== 基础攻防数值 =====
         const level = attacker.level || attacker.stats?.level || 5;
-        const atkStat = attacker.stats.attack * (1 + attacker.statModifiers.attack * 0.25);
+        let atkStat = attacker.stats.attack * (1 + attacker.statModifiers.attack * 0.25);
         const defStat = defender.stats.defense * (1 + defender.statModifiers.defense * 0.25);
+
+        // 烧伤状态：物理伤害攻击力减半
+        if (attacker.status === 'burn' && skill.category === 'physical') {
+            atkStat = Math.floor(atkStat * 0.5);
+        }
 
         // ===== 核心伤害公式 =====
         // 调整后的公式：大幅提高伤害倍率
@@ -224,6 +238,15 @@ class BattleEngine {
      * 返回效果描述文本，null表示无附加效果
      */
     applySkillEffect(skill, user, target) {
+        // 状态异常施加
+        if (skill.statusEffect && skill.statusChance) {
+            const inflicted = this.tryInflictStatus(target, skill.statusEffect, skill.statusChance);
+            if (inflicted) {
+                const effectName = BattleEngine.STATUS_EFFECTS[skill.statusEffect]?.name || skill.statusEffect;
+                return `${target.name}陷入了${effectName}状态！`;
+            }
+        }
+
         switch (skill.name) {
             case '叫声':
                 target.statModifiers.attack = Math.max(-6, target.statModifiers.attack - 1);
@@ -277,8 +300,13 @@ class BattleEngine {
 
     /** 判断先后手（速度优先） */
     determineTurnOrder() {
-        const pSpd = this.state.playerCreature.stats.speed * (1 + this.state.playerCreature.statModifiers.speed * 0.25);
-        const eSpd = this.state.enemyCreature.stats.speed * (1 + this.state.enemyCreature.statModifiers.speed * 0.25);
+        let pSpd = this.state.playerCreature.stats.speed * (1 + this.state.playerCreature.statModifiers.speed * 0.25);
+        let eSpd = this.state.enemyCreature.stats.speed * (1 + this.state.enemyCreature.statModifiers.speed * 0.25);
+
+        // 麻痹状态：速度降为25%
+        if (this.state.playerCreature.status === 'paralyze') pSpd = Math.floor(pSpd * 0.25);
+        if (this.state.enemyCreature.status === 'paralyze') eSpd = Math.floor(eSpd * 0.25);
+
         return pSpd >= eSpd;
     }
 
@@ -420,5 +448,79 @@ class BattleEngine {
             this.state.log.push(text);
             if (this.state.log.length > 8) this.state.log.shift();
         }
+    }
+
+    // ════════════════════════════════════
+    //   状态异常系统
+    // ════════════════════════════════════
+
+    /** 尝试施加状态异常 */
+    tryInflictStatus(target, statusName, chance) {
+        // 已有状态不能覆盖（睡眠除外可以被其他状态覆盖）
+        if (target.status && target.status !== 'sleep') return false;
+        if (statusName === 'sleep' && target.status) return false;
+
+        // 属性免疫：火系免疫烧伤，冰系免疫冰冻，毒系免疫中毒
+        const immunities = { fire: 'burn', ice: 'freeze', poison: 'poison' };
+        if (immunities[target.type] === statusName) return false;
+
+        // 概率判定
+        if (Math.random() > chance) return false;
+
+        target.status = statusName;
+        target.statusTurns = 0;
+        return true;
+    }
+
+    /** 回合结束时处理状态异常 */
+    processEndOfTurnStatus(creature) {
+        if (!creature.status) return null;
+
+        const effect = BattleEngine.STATUS_EFFECTS[creature.status];
+        creature.statusTurns++;
+
+        const messages = [];
+
+        // 中毒/烧伤扣血
+        if (effect.turnDamage > 0) {
+            const damage = Math.max(1, Math.floor(creature.maxHP * effect.turnDamage));
+            creature.currentHP = Math.max(0, creature.currentHP - damage);
+            messages.push(`${creature.name}受到了${effect.name}的伤害！(-${damage}HP)`);
+        }
+
+        // 冰冻：20%概率自然解冻
+        if (creature.status === 'freeze' && Math.random() < effect.thawChance) {
+            creature.status = null;
+            creature.statusTurns = 0;
+            messages.push(`${creature.name}从${effect.name}中恢复了！`);
+        }
+
+        // 睡眠：33%概率自然苏醒
+        if (creature.status === 'sleep' && Math.random() < effect.wakeChance) {
+            creature.status = null;
+            creature.statusTurns = 0;
+            messages.push(`${creature.name}醒来了！`);
+        }
+
+        return messages.length > 0 ? messages : null;
+    }
+
+    /** 检查状态异常是否阻止行动 */
+    canAct(creature) {
+        if (!creature.status) return { canAct: true };
+
+        const effect = BattleEngine.STATUS_EFFECTS[creature.status];
+
+        if (!effect.canAct) {
+            // 冰冻/睡眠：无法行动
+            return { canAct: false, reason: `${creature.name}处于${effect.name}状态，无法行动！` };
+        }
+
+        if (creature.status === 'paralyze' && Math.random() > effect.actChance) {
+            // 麻痹：25%概率无法行动
+            return { canAct: false, reason: `${creature.name}因${effect.name}而无法行动！` };
+        }
+
+        return { canAct: true };
     }
 }

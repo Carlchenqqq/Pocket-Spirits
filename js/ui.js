@@ -1,6 +1,16 @@
 /**
- * UIManager - UI管理
- * 对话框、菜单、HP条、精灵选择等界面
+ * UIManager - UI 管理器（兼容层）
+ * 
+ * 注意：此文件为兼容层，新代码应优先使用 js/engine/ 下的：
+ * - UIEngine.js（状态管理）
+ * - UIRenderer.js（渲染）
+ * - UIInputHandler.js（输入处理）
+ * 
+ * 以下方法已迁移到新系统（此文件保留委托调用以兼容旧代码）：
+ * - showMessage / renderMessage → UIEngine
+ * - renderHPBar → UIRenderer
+ * - renderHUD → UIRenderer
+ * - showButtonDialog / renderButtonDialog / handleButtonDialogInput → UIRenderer + UIInputHandler
  */
 class UIManager {
     constructor(ctx, canvas) {
