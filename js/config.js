@@ -19,4 +19,6 @@ const CONFIG = {
     DIALOG_SPEED: 30,
     // 消息显示时长（毫秒）
     MESSAGE_DURATION: 2000,
+    // 资源版本号（更新地图/数据时递增，防止浏览器缓存）
+    ASSET_VERSION: 38,
 };

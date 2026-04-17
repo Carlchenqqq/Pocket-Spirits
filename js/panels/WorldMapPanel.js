@@ -467,9 +467,18 @@ class WorldMapPanel {
             return;
         }
 
-        g.mapManager.switchMap(targetId);
+        const switched = g.mapManager.switchMap(targetId);
+        if (!switched) {
+            g.ui.showMessage('传送失败，地图不存在！');
+            this.closeMap();
+            return;
+        }
         const newMap = g.mapManager.getCurrentMap();
-        g.player.setPosition(newMap.playerStart.x, newMap.playerStart.y);
+        if (newMap.playerStart) {
+            g.player.setPosition(newMap.playerStart.x, newMap.playerStart.y);
+        } else {
+            g.player.setPosition(1, 1);
+        }
         g.npcManager.loadNPCs(newMap.npcs);
         g.camera.snapTo(g.player.x, g.player.y, g.player.width, g.player.height, newMap.width * g.mapManager.tileSize, newMap.height * g.mapManager.tileSize);
 

@@ -26,10 +26,11 @@ class ShopScene extends Scene {
                     click.y >= backBtnY && click.y <= backBtnY + backBtnH) {
                     g.shopManager.close(); g.sceneManager.pop(); return;
                 }
-                // 商品列表点击
-                const listTop = 87, listBottom = 95 + 4 * 50;
+                // 商品列表点击（行高 48px，与渲染一致）
+                const listTop = 87;
+                const listBottom = 95 + g.shopManager.shopItems.length * 48;
                 if (click.x >= 20 && click.x <= W - 20 && click.y >= listTop && click.y <= listBottom) {
-                    const clickedIndex = Math.floor((click.y - listTop) / 50);
+                    const clickedIndex = Math.floor((click.y - listTop) / 48);
                     if (clickedIndex >= 0 && clickedIndex < g.shopManager.shopItems.length) {
                         g.shopManager.requestBuy(clickedIndex);
                     }

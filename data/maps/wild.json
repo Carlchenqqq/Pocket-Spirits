@@ -8,20 +8,20 @@
   "region": "中州南部",
   "chapter": 1,
   "playerStart": {
-    "x": 2,
-    "y": 10
+    "x": 15,
+    "y": 2
   },
   "transfers": [
     {
-      "x": 0,
-      "y": 9,
+      "x": 15,
+      "y": 0,
       "targetMap": "qingye_town",
       "targetX": 10,
       "targetY": 13
     },
     {
-      "x": 0,
-      "y": 10,
+      "x": 16,
+      "y": 0,
       "targetMap": "qingye_town",
       "targetX": 11,
       "targetY": 13
@@ -48,9 +48,24 @@
       "y": 10,
       "type": "trainer",
       "name": "少年训练师阿明",
-      "dialogs": ["嘿！来对战吧！", "我的精灵可是很强的！"],
-      "defeatDialogs": ["你真强…我输了。", "还要再练习呢…"],
-      "creatures": [{"creatureId": 10, "level": 3}, {"creatureId": 12, "level": 4}],
+      "dialogs": [
+        "嘿！来对战吧！",
+        "我的精灵可是很强的！"
+      ],
+      "defeatDialogs": [
+        "你真强…我输了。",
+        "还要再练习呢…"
+      ],
+      "creatures": [
+        {
+          "creatureId": 10,
+          "level": 3
+        },
+        {
+          "creatureId": 12,
+          "level": 4
+        }
+      ],
       "defeated": false,
       "reward": 60
     },
@@ -60,9 +75,24 @@
       "y": 6,
       "type": "trainer",
       "name": "少女训练师小芸",
-      "dialogs": ["我的精灵可不弱的！", "来试试看！"],
-      "defeatDialogs": ["还要再练习呢…", "下次一定赢你！"],
-      "creatures": [{"creatureId": 10, "level": 4}, {"creatureId": 14, "level": 5}],
+      "dialogs": [
+        "我的精灵可不弱的！",
+        "来试试看！"
+      ],
+      "defeatDialogs": [
+        "还要再练习呢…",
+        "下次一定赢你！"
+      ],
+      "creatures": [
+        {
+          "creatureId": 10,
+          "level": 4
+        },
+        {
+          "creatureId": 14,
+          "level": 5
+        }
+      ],
       "defeated": false,
       "reward": 80
     },
@@ -70,16 +100,50 @@
       "id": "npc_wild_hiker",
       "x": 18,
       "y": 5,
-      "type": "dialog",
+      "type": "quest_giver",
       "name": "旅行者老伯",
-      "dialogs": ["这片草丛是新手灵师修炼的好地方。", "往东走能到碧波森林，再往东就是碧波镇了。", "小心那些幻影猫，它们可是稀有精灵！"]
+      "dialogs": [
+        "这片草丛是新手灵师修炼的好地方。",
+        "往东走能到碧波森林...",
+        "小心那些幻影猫..."
+      ],
+      "questId": "quest_train_three",
+      "questDesc": "击败至少3个训练师，证明你的实力！",
+      "progressDialogs": [
+        "继续加油！还需要击败更多训练师。"
+      ],
+      "completedDialogs": [
+        "不错不错，你已经有了灵师的潜质！",
+        "去碧波镇挑战道馆吧！"
+      ],
+      "reward": 300
     }
   ],
   "wildCreatures": [
-    {"id": 10, "minLevel": 2, "maxLevel": 4, "weight": 30},
-    {"id": 12, "minLevel": 2, "maxLevel": 3, "weight": 25},
-    {"id": 14, "minLevel": 3, "maxLevel": 4, "weight": 15},
-    {"id": 24, "minLevel": 3, "maxLevel": 4, "weight": 10}
+    {
+      "id": 10,
+      "minLevel": 2,
+      "maxLevel": 4,
+      "weight": 30
+    },
+    {
+      "id": 12,
+      "minLevel": 2,
+      "maxLevel": 3,
+      "weight": 25
+    },
+    {
+      "id": 14,
+      "minLevel": 3,
+      "maxLevel": 4,
+      "weight": 15
+    },
+    {
+      "id": 24,
+      "minLevel": 3,
+      "maxLevel": 4,
+      "weight": 10
+    }
   ],
   "layers": {
     "tiles": [
@@ -942,7 +1006,7 @@
         2,
         2,
         2,
-        2,
+        0,
         2,
         2,
         2,

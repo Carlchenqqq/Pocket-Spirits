@@ -63,10 +63,14 @@ class BattleManager {
         this._resetAnim();
         const playerCreature = this.cm.getFirstAlive();
         const enemyCreature = trainerParty.find(c => c.currentHP > 0);
+        if (!enemyCreature) return;
 
         this.engine.initTrainerBattle(playerCreature, enemyCreature, trainerNPC, trainerParty);
-        this.shakeTarget = null;
+        this.trainerNPC = trainerNPC;
         this.trainerParty = trainerParty;
+        this.isPlotBattle = trainerNPC && trainerNPC.isPlotBattle;
+        this.isBoss = trainerNPC && trainerNPC.isBoss;
+        this.shakeTarget = null;
     }
 
     // ════════════════════════════════════
@@ -558,11 +562,16 @@ class BattleManager {
 
     endBattle() {
         this.active = false;
-        this.engine.endBattle();
+        // 在清空 state 之前保存战斗信息，供回调使用
+        const state = this.engine.state;
+        this.lastBattleType = state?.battleType || 'wild';
+        this.lastTrainerNPC = this.trainerNPC || state?.trainerNPC || null;
+        const result = this.engine.getResult(); // 先保存结果
+        this.engine.endBattle();                // 再清空 state
         if (this.resultCallback) {
             const cb = this.resultCallback;
             this.resultCallback = null;
-            cb(this.engine.getResult?.() || null); // 兼容：engine 已清空时取不到
+            cb(result);
         }
     }
 }

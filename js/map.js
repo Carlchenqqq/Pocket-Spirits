@@ -96,7 +96,19 @@ class MapManager {
      * @returns {Promise<Object|null>} 地图数据或 null
      */
     async loadMap(mapId) {
-        const response = await fetch(`data/maps/${mapId}.json`);
+        // ID → 文件名映射（部分文件名与ID不一致）
+        const idToFile = {
+            'qingye_town': 'town1',
+            'route_001': 'wild',
+            'bibo_town': 'town2',
+            'abandoned_mine': 'cave',
+            'town1': 'town1',
+            'wild': 'wild',
+            'town2': 'town2',
+            'cave': 'cave'
+        };
+        const fileName = idToFile[mapId] || mapId;
+        const response = await fetch(`data/maps/${fileName}.json?v=${CONFIG.ASSET_VERSION}`);
         if (!response.ok) {
             return null;
         }
@@ -1043,9 +1055,161 @@ class MapManager {
                 ctx.fillRect(px + 15, py + 27, 2, 3);
                 break;
 
-            default:
-                ctx.fillStyle = '#ff00ff';
+            // ===== 沼泽瓦片 =====
+            case 'swamp':
+                // 深绿浑浊水面
+                ctx.fillStyle = '#3a5a3a';
                 ctx.fillRect(px, py, ts, ts);
+                // 浅色水面反光
+                ctx.fillStyle = '#4a6a4a';
+                ctx.fillRect(px + 2, py + 4, 24, 2);
+                ctx.fillRect(px + 6, py + 14, 18, 2);
+                ctx.fillRect(px + 4, py + 24, 20, 2);
+                // 深色泥浆斑块
+                ctx.fillStyle = '#2a4a2a';
+                ctx.fillRect(px + 8, py + 8, 8, 6);
+                ctx.fillRect(px + 20, py + 18, 6, 8);
+                // 小气泡
+                ctx.fillStyle = '#5a7a5a';
+                if (seed % 3 === 0) ctx.fillRect(px + 6, py + 10, 3, 3);
+                if (seed % 4 === 1) ctx.fillRect(px + 18, py + 6, 2, 2);
+                if (seed % 5 === 2) ctx.fillRect(px + 12, py + 22, 3, 2);
+                break;
+
+            case 'mud':
+                // 棕色泥地
+                ctx.fillStyle = '#6a5a3a';
+                ctx.fillRect(px, py, ts, ts);
+                // 泥土纹理
+                ctx.fillStyle = '#5a4a2a';
+                ctx.fillRect(px + 4, py + 6, 8, 4);
+                ctx.fillRect(px + 16, py + 12, 10, 4);
+                ctx.fillRect(px + 8, py + 22, 12, 3);
+                // 浅色泥点
+                ctx.fillStyle = '#7a6a4a';
+                ctx.fillRect(px + 10, py + 4, 4, 3);
+                ctx.fillRect(px + 22, py + 20, 5, 3);
+                // 水洼
+                ctx.fillStyle = '#4a6a5a';
+                if (seed % 3 === 0) ctx.fillRect(px + 6, py + 16, 8, 4);
+                break;
+
+            // ===== 礁石/沙滩瓦片 =====
+            case 'reef':
+                // 浅蓝水面
+                ctx.fillStyle = '#5a8aaa';
+                ctx.fillRect(px, py, ts, ts);
+                // 礁石
+                ctx.fillStyle = '#7a7a6a';
+                ctx.fillRect(px + 4, py + 6, 10, 8);
+                ctx.fillRect(px + 18, py + 16, 8, 10);
+                // 礁石高光
+                ctx.fillStyle = '#9a9a8a';
+                ctx.fillRect(px + 6, py + 7, 4, 3);
+                ctx.fillRect(px + 20, py + 17, 3, 3);
+                // 水波纹
+                ctx.fillStyle = '#6a9aba';
+                ctx.fillRect(px + 2, py + 2, 20, 1);
+                ctx.fillRect(px + 8, py + 20, 16, 1);
+                break;
+
+            case 'dirt':
+                // 土路/泥地
+                ctx.fillStyle = '#8a7a5a';
+                ctx.fillRect(px, py, ts, ts);
+                // 碎石
+                ctx.fillStyle = '#7a6a4a';
+                ctx.fillRect(px + 6, py + 8, 3, 3);
+                ctx.fillRect(px + 18, py + 14, 4, 3);
+                ctx.fillRect(px + 12, py + 24, 3, 2);
+                // 浅色区域
+                ctx.fillStyle = '#9a8a6a';
+                ctx.fillRect(px + 2, py + 4, 8, 2);
+                ctx.fillRect(px + 14, py + 20, 10, 2);
+                break;
+
+            case 'rock':
+                // 灰色岩石
+                ctx.fillStyle = '#6a6a6a';
+                ctx.fillRect(px, py, ts, ts);
+                // 岩石纹理
+                ctx.fillStyle = '#5a5a5a';
+                ctx.fillRect(px + 2, py + 4, 12, 8);
+                ctx.fillRect(px + 14, py + 14, 12, 10);
+                // 高光
+                ctx.fillStyle = '#8a8a8a';
+                ctx.fillRect(px + 4, py + 5, 6, 3);
+                ctx.fillRect(px + 16, py + 15, 5, 3);
+                // 裂缝
+                ctx.fillStyle = '#4a4a4a';
+                ctx.fillRect(px + 10, py + 8, 1, 10);
+                ctx.fillRect(px + 20, py + 4, 1, 14);
+                break;
+
+            // ===== 石砖瓦片 =====
+            case 'stoneFloor':
+                ctx.fillStyle = '#5a5a6a';
+                ctx.fillRect(px, py, ts, ts);
+                ctx.fillStyle = '#4a4a5a';
+                ctx.fillRect(px, py, ts, 1);
+                ctx.fillRect(px, py + 16, ts, 1);
+                ctx.fillRect(px + 16, py, 1, 16);
+                ctx.fillRect(px + 8, py + 16, 1, 16);
+                ctx.fillStyle = '#6a6a7a';
+                ctx.fillRect(px + 2, py + 2, 12, 12);
+                ctx.fillRect(px + 18, py + 18, 10, 10);
+                break;
+
+            case 'stoneWall':
+                ctx.fillStyle = '#4a4a5a';
+                ctx.fillRect(px, py, ts, ts);
+                ctx.fillStyle = '#3a3a4a';
+                ctx.fillRect(px, py + 8, ts, 1);
+                ctx.fillRect(px, py + 16, ts, 1);
+                ctx.fillRect(px, py + 24, ts, 1);
+                ctx.fillRect(px + 16, py, 1, 8);
+                ctx.fillRect(px + 8, py + 8, 1, 8);
+                ctx.fillRect(px + 24, py + 16, 1, 8);
+                ctx.fillStyle = '#5a5a6a';
+                ctx.fillRect(px + 4, py + 2, 8, 4);
+                ctx.fillRect(px + 18, py + 10, 4, 4);
+                break;
+
+            case 'crystal':
+                ctx.fillStyle = '#2a2530';
+                ctx.fillRect(px, py, ts, ts);
+                ctx.fillStyle = '#7a5aaa';
+                ctx.fillRect(px + 10, py + 8, 12, 16);
+                ctx.fillStyle = '#9a7acc';
+                ctx.fillRect(px + 12, py + 4, 8, 20);
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fillRect(px + 14, py + 6, 3, 10);
+                ctx.fillStyle = 'rgba(154,122,204,0.15)';
+                ctx.fillRect(px + 4, py, 24, ts);
+                break;
+
+            // 兼容下划线命名
+            case 'cave_floor':
+                // 同 caveFloor
+                ctx.fillStyle = '#2a2530';
+                ctx.fillRect(px, py, ts, ts);
+                ctx.fillStyle = '#35303d';
+                ctx.fillRect(px + 4, py + 6, 4, 3);
+                ctx.fillRect(px + 18, py + 12, 5, 4);
+                ctx.fillRect(px + 8, py + 22, 6, 3);
+                ctx.fillRect(px + 22, py + 26, 3, 3);
+                ctx.fillStyle = '#1f1a25';
+                ctx.fillRect(px + 10, py + 8, 1, 12);
+                ctx.fillRect(px + 26, py + 4, 1, 18);
+                break;
+
+            default:
+                // 未识别的 tile 类型用深灰色标记（便于排查）
+                ctx.fillStyle = '#333';
+                ctx.fillRect(px, py, ts, ts);
+                ctx.fillStyle = '#f44';
+                ctx.font = '8px monospace';
+                ctx.fillText(tileType.substring(0, 6), px + 2, py + 12);
         }
     }
 
@@ -1054,6 +1218,7 @@ class MapManager {
         if (!npcs) return;
         const ts = this.tileSize;
         npcs.forEach(npc => {
+            if (npc.hidden) return; // 跳过隐藏的NPC
             const px = npc.x * ts;
             const py = npc.y * ts;
 

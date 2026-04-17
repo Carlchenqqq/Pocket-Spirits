@@ -241,6 +241,7 @@ class ExploreScene extends Scene {
             g.ui.closeCreatureSelect();
             if (index >= 0) {
                 const creature = g.creaturesManager.party[index];
+                if (!creature) return;
                 g.ui.showDialog([
                     `${creature.name} Lv.${creature.level}`,
                     `属性: ${creature.type}`,
@@ -276,7 +277,7 @@ class ExploreScene extends Scene {
         if (g.creaturesManager.party.length === 0) { g.ui.showMessage('没有精灵，快去找精灵博士！'); return; }
         if (g.creaturesManager.isPartyFainted()) { g.ui.showMessage('精灵都倒下了...'); return; }
         const map = g.mapManager.getCurrentMap();
-        if (!map || !map.wildCreatures) return;
+        if (!map || !map.wildCreatures || map.wildCreatures.length === 0) return;
         const totalWeight = map.wildCreatures.reduce((sum, c) => sum + c.weight, 0);
         let rand = Math.random() * totalWeight;
         let selected = map.wildCreatures[0];
@@ -314,9 +315,24 @@ class ExploreScene extends Scene {
             if (map && map.playerStart) g.player.setPosition(map.playerStart.x, map.playerStart.y);
             return;
         }
-        g.mapManager.switchMap(transfer.targetMap);
+        // 切换地图，检查返回值防止目标地图不存在
+        const switched = g.mapManager.switchMap(transfer.targetMap);
+        if (!switched) {
+            console.error(`传送失败：目标地图 "${transfer.targetMap}" 不存在`);
+            const currentMap = g.mapManager.getCurrentMap();
+            if (currentMap && currentMap.playerStart) {
+                g.player.setPosition(currentMap.playerStart.x, currentMap.playerStart.y);
+            }
+            g.ui.showMessage('传送失败，请重试');
+            return;
+        }
         const newMap = g.mapManager.getCurrentMap();
-        g.player.setPosition(transfer.targetX, transfer.targetY);
+        // 校验目标坐标是否在新地图范围内
+        const tx = transfer.targetX || 0;
+        const ty = transfer.targetY || 0;
+        const safeX = (tx >= 0 && tx < newMap.width) ? tx : (newMap.playerStart ? newMap.playerStart.x : 0);
+        const safeY = (ty >= 0 && ty < newMap.height) ? ty : (newMap.playerStart ? newMap.playerStart.y : 0);
+        g.player.setPosition(safeX, safeY);
         g.npcManager.loadNPCs(newMap.npcs);
         g.camera.snapTo(g.player.x, g.player.y, g.player.width, g.player.height, newMap.width * g.mapManager.tileSize, newMap.height * g.mapManager.tileSize);
         g.ui.showMessage(`来到了${newMap.name}`);
@@ -326,12 +342,16 @@ class ExploreScene extends Scene {
     _onBattleEnd(result) {
         const g = this.game;
         try {
-            // 从 engine.state 读取战斗信息（BattleManager 不直接持有这些属性）
-            const battleState = g.battleManager.engine?.state;
-            const battleType = battleState?.battleType || 'wild';
-            const trainerNPC = g.battleManager.trainerNPC || battleState?.trainerNPC || null;
+            // 从 BattleManager 保存的属性读取（endBattle 已清空 engine.state）
+            const battleType = g.battleManager.lastBattleType || 'wild';
+            const trainerNPC = g.battleManager.lastTrainerNPC || null;
 
             if (result === 'lose') {
+                // 清理道馆相关状态
+                g.currentBattleType = null;
+                g.gymLeaderId = null;
+                g.gymBadgeId = null;
+                g.currentGymNPC = null;
                 // 战败回青叶镇（优先新ID，兼容旧ID）
                 const homeMap = g.mapManager.maps['qingye_town'] ? 'qingye_town' : 'town1';
                 g.mapManager.switchMap(homeMap);
@@ -349,6 +369,46 @@ class ExploreScene extends Scene {
 
                 // 道馆馆主胜利 -> 颁发徽章
                 if (g.currentBattleType === 'gym' && g.gymBadgeId) {
+                    // 检查是否是冒牌馆主
+                    const gymNPC = g.currentGymNPC;
+                    if (gymNPC && gymNPC.isImposter) {
+                        // 触发真相揭露剧情
+                        g.ui.showDialog([
+                            '等等...这个馆主的感觉不对...',
+                            '真正的澜汐馆主被绑在道馆后面的密室里！',
+                            '你击败的是浊流小头目「浪」伪装的冒牌馆主！',
+                            '浪已经逃跑了...',
+                            '澜汐馆主：谢谢你，孩子。',
+                            '浊流比想象中更危险。',
+                            '其他几个地区的道馆也收到了「合作邀请」。',
+                            '如果他们也像这里一样被渗透...',
+                            '你获得了碧波徽章！'
+                        ], () => {
+                            // 授予徽章
+                            if (gymNPC.badgeId && !g.creaturesManager.hasBadge(gymNPC.badgeId)) {
+                                g.creaturesManager.badges.push(gymNPC.badgeId);
+                                g.ui.showMessage(`获得了${gymNPC.badgeId === 'bibo_badge' ? '碧波徽章' : gymNPC.badgeId}！`);
+                            }
+                            // 完成任务
+                            if (g.quests) g.quests['quest_sea_route'] = 'completed';
+                            // 标记真正馆主为已解救
+                            const realLeader = g.npcManager.npcs.find(n => n.isRealLeader);
+                            if (realLeader) {
+                                realLeader.type = 'gym_leader';
+                                realLeader.defeated = true;
+                                realLeader.hidden = false; // 显示真正馆主
+                            }
+                            // 移除冒牌馆主
+                            const imposterIdx = g.npcManager.npcs.findIndex(n => n.id === gymNPC.id);
+                            if (imposterIdx >= 0) g.npcManager.npcs.splice(imposterIdx, 1);
+                            g.currentGymNPC = null;
+                            g.saveManager.save(g, 0);
+                        });
+                        g.sceneManager.push('dialog');
+                        g.currentGymNPC = null;
+                        return; // 跳过正常的道馆战奖励处理
+                    }
+
                     const awarded = g.creaturesManager.awardBadge(g.gymBadgeId);
                     if (awarded) {
                         const badgeDef = CreaturesManager.GYM_DEFINITIONS.find(b => b.id === g.gymBadgeId);
@@ -357,6 +417,7 @@ class ExploreScene extends Scene {
                     g.currentBattleType = null;
                     g.gymLeaderId = null;
                     g.gymBadgeId = null;
+                    g.currentGymNPC = null;
                 }
             }
             if (result === 'catch_success') g.creaturesManager.recordCreatureCaught(g.battleManager.caughtCreatureId || 0);

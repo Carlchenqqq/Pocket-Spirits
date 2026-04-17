@@ -17,38 +17,38 @@
       "y": 7,
       "targetMap": "bibo_forest",
       "targetX": 28,
-      "targetY": 8
+      "targetY": 7
     },
     {
       "x": 0,
       "y": 8,
       "targetMap": "bibo_forest",
       "targetX": 28,
-      "targetY": 9
+      "targetY": 8
     },
     {
-      "x": 10,
+      "x": 2,
       "y": 0,
       "targetMap": "mist_marsh",
       "targetX": 11,
       "targetY": 18
     },
     {
-      "x": 11,
+      "x": 3,
       "y": 0,
       "targetMap": "mist_marsh",
       "targetX": 12,
       "targetY": 18
     },
     {
-      "x": 10,
+      "x": 2,
       "y": 14,
       "targetMap": "reef_route",
       "targetX": 1,
       "targetY": 8
     },
     {
-      "x": 11,
+      "x": 3,
       "y": 14,
       "targetMap": "reef_route",
       "targetX": 1,
@@ -76,7 +76,10 @@
       "y": 6,
       "type": "shop",
       "name": "货郎老黄",
-      "dialogs": ["欢迎光临！需要什么道具吗？", "灵球、药水，应有尽有！"]
+      "dialogs": [
+        "欢迎光临！需要什么道具吗？",
+        "灵球、药水，应有尽有！"
+      ]
     },
     {
       "id": "heal_npc",
@@ -84,29 +87,58 @@
       "y": 13,
       "type": "healer",
       "name": "杏林医仙",
-      "dialogs": ["你的精灵已经恢复健康了！", "随时欢迎回来~", "保护好你的伙伴哦。"]
+      "dialogs": [
+        "你的精灵已经恢复健康了！",
+        "随时欢迎回来~",
+        "保护好你的伙伴哦。"
+      ]
     },
     {
       "id": "villager_04",
       "x": 15,
       "y": 7,
-      "type": "dialog",
+      "type": "quest_giver",
       "name": "港口船夫",
-      "dialogs": ["海上的浪最近特别大，不知道怎么回事。", "想出海的话，先找馆主拿推荐信吧。"]
+      "dialogs": [
+        "海上的浪最近特别大...",
+        "想出海的话，先找馆主拿推荐信吧。"
+      ],
+      "questId": "quest_sea_route",
+      "questDesc": "获得碧波徽章后，回来找船夫开启海上航线。",
+      "progressDialogs": [
+        "还没有碧波徽章的话，我没办法带你出海。"
+      ],
+      "completedDialogs": [
+        "好的，推荐信我看到了！",
+        "海上风浪大，小心行事。"
+      ],
+      "reward": 200
     },
     {
       "id": "villager_05",
       "x": 5,
       "y": 11,
-      "type": "dialog",
+      "type": "quest_giver",
       "name": "游客少女",
-      "dialogs": ["碧波镇的夜景真的太美了！", "这里的水系精灵也好可爱！"]
+      "dialogs": [
+        "碧波镇的夜景真的太美了！",
+        "你知道碧波森林深处有灵晶碎片吗？"
+      ],
+      "questId": "quest_crystal_hint",
+      "questDesc": "在迷雾沼泽中找到灵晶碎片，据说那里蕴藏着神秘的力量。",
+      "progressDialogs": [
+        "灵晶碎片在迷雾沼泽的深处，继续探索吧！"
+      ],
+      "completedDialogs": [
+        "你找到灵晶碎片了！太厉害了！"
+      ],
+      "reward": 100
     },
     {
       "id": "gym_leader_lan_xi",
       "x": 14,
       "y": 4,
-      "type": "gym_leader",
+      "type": "dialog",
       "name": "道馆馆主·澜汐",
       "dialogs": [
         "我是碧波道馆的馆主澜汐。",
@@ -115,36 +147,57 @@
         "击败我，就能获得碧波徽章！"
       ],
       "creatures": [
-        {"creatureId": 16, "level": 10},
-        {"creatureId": 18, "level": 12},
-        {"creatureId": 3, "level": 14}
+        {
+          "creatureId": 16,
+          "level": 10
+        },
+        {
+          "creatureId": 18,
+          "level": 12
+        },
+        {
+          "creatureId": 3,
+          "level": 14
+        }
       ],
       "defeated": false,
       "reward": 600,
       "badgeId": "bibo_badge",
-      "badgeName": "碧波徽章"
+      "badgeName": "碧波徽章",
+      "isRealLeader": true,
+      "hidden": true
     },
     {
       "id": "npc_lang_disguised",
       "x": 18,
       "y": 11,
-      "type": "trainer",
-      "name": "神秘训练师·浪",
+      "type": "gym_leader",
+      "name": "道馆馆主·澜汐",
       "dialogs": [
-        "哦？你是墨博士的学生？",
-        "有趣…让我看看你的实力。"
+        "我是碧波道馆的馆主澜汐。",
+        "水，看似柔弱，实则包容万物。",
+        "你已经做好挑战的准备了吗？",
+        "击败我，就能获得碧波徽章！"
       ],
       "defeatDialogs": [
         "啧…没想到这小鬼不好对付。",
         "不过这只是开始，小鬼。后会无期！"
       ],
       "creatures": [
-        {"creatureId": 16, "level": 8},
-        {"creatureId": 14, "level": 9}
+        {
+          "creatureId": 16,
+          "level": 8
+        },
+        {
+          "creatureId": 14,
+          "level": 9
+        }
       ],
       "defeated": false,
-      "reward": 300,
-      "isPlotBattle": true
+      "reward": 500,
+      "isPlotBattle": true,
+      "isImposter": true,
+      "badgeId": "bibo_badge"
     }
   ],
   "layers": {
@@ -484,14 +537,6 @@
       [
         1,
         1,
-        0,
-        0,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
         3,
         3,
         1,
@@ -501,6 +546,14 @@
         1,
         1,
         1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
         1
       ],
       [
@@ -584,28 +637,6 @@
         0,
         1,
         1,
-        1,
-        1,
-        1,
-        0,
-        0,
-        1
-      ],
-      [
-        1,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        1,
-        1,
         0,
         1,
         1,
@@ -626,6 +657,28 @@
         0,
         0,
         0,
+        1,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         0,
         0,
         0,
@@ -634,28 +687,6 @@
         0,
         0,
         1
-      ],
-      [
-        3,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        3
       ],
       [
         3,
@@ -680,6 +711,28 @@
         3
       ],
       [
+        3,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      [
         1,
         0,
         0,
@@ -790,18 +843,18 @@
         1
       ],
       [
-        1,
-        1,
-        0,
-        0,
-        1,
-        1,
-        1,
-        1,
         1,
         1,
         3,
         3,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
         1,
         1,
         1,

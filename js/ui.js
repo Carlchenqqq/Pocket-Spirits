@@ -746,6 +746,46 @@ class UIManager {
             ctx.fillText(map.name, 10, 19);
         }
 
+        // 当前精灵信息面板（名称、等级、HP条、经验条）
+        const party = creaturesManager.party;
+        if (party.length > 0) {
+            const c = party[0]; // 当前出战精灵
+            const panelX = 5, panelY = 28, panelW = 180, panelH = 42;
+            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+            ctx.fillRect(panelX, panelY, panelW, panelH);
+
+            // 名称和等级
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(`${c.name} Lv.${c.level}`, panelX + 6, panelY + 14);
+
+            // HP条
+            const hpBarX = panelX + 6, hpBarY = panelY + 18, hpBarW = 120, hpBarH = 8;
+            ctx.fillStyle = '#333';
+            ctx.fillRect(hpBarX, hpBarY, hpBarW, hpBarH);
+            const hpRatio = c.maxHP > 0 ? Math.max(0, c.currentHP / c.maxHP) : 0;
+            ctx.fillStyle = hpRatio > 0.5 ? '#4CAF50' : (hpRatio > 0.2 ? '#FFC107' : '#F44336');
+            ctx.fillRect(hpBarX, hpBarY, hpBarW * hpRatio, hpBarH);
+            // HP数值
+            ctx.fillStyle = '#AAA';
+            ctx.font = '10px monospace';
+            ctx.fillText(`${c.currentHP}/${c.maxHP}`, hpBarX + hpBarW + 4, hpBarY + 8);
+
+            // 经验条
+            if (c.expToNext > 0 && c.level < 100) {
+                const expBarX = panelX + 6, expBarY = panelY + 30, expBarW = 168, expBarH = 6;
+                ctx.fillStyle = '#222';
+                ctx.fillRect(expBarX, expBarY, expBarW, expBarH);
+                const expRatio = Math.min(1, c.exp / c.expToNext);
+                ctx.fillStyle = '#4169E1';
+                ctx.fillRect(expBarX, expBarY, expBarW * expRatio, expBarH);
+                // EXP数值
+                ctx.fillStyle = '#888';
+                ctx.font = '9px monospace';
+                ctx.fillText(`EXP: ${c.exp}/${c.expToNext}`, expBarX + expBarW + 4, expBarY + 6);
+            }
+        }
+
         // 金币
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(this.W - 115, 5, 110, 20);

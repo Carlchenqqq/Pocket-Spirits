@@ -7,6 +7,28 @@ class QuestPanel {
         this.game = game;
         this.open = false;
         this.scrollIndex = 0;
+        // 任务名称和描述映射
+        this.questInfo = {
+            'quest_start':          { name: '前往碧波镇',   desc: '前往碧波镇，找到澜汐馆主做灵师资质测试。' },
+            'quest_train_three':    { name: '训练师之路',   desc: '击败至少3个训练师，证明你的实力！' },
+            'quest_suspicious_people': { name: '可疑人物',  desc: '调查碧波森林深处的可疑人物。' },
+            'quest_sea_route':      { name: '海上航线',     desc: '获得碧波徽章后，找船夫开启海上航线。' },
+            'quest_crystal_hint':   { name: '灵晶碎片',     desc: '在迷雾沼泽中找到灵晶碎片。' },
+            'spirit_crystal_south': { name: '灵晶碎片·南', desc: '在迷雾沼泽中发现的灵晶碎片。' },
+            'spirit_crystal_east':  { name: '灵晶碎片·东', desc: '在礁石航道中发现的灵晶碎片。' },
+            'spirit_crystal_west':  { name: '灵晶碎片·西', desc: '在赤岩古道中发现的灵晶碎片。' },
+            'quest_warn_others':    { name: '警告其他地区', desc: '其他道馆也收到了浊流的「合作邀请」，需要警告他们。' },
+        };
+    }
+
+    /** 获取任务的可读名称 */
+    _getQuestName(qId) {
+        return this.questInfo[qId]?.name || qId;
+    }
+
+    /** 获取任务描述 */
+    _getQuestDesc(qId) {
+        return this.questInfo[qId]?.desc || '';
     }
 
     openQuest() {
@@ -85,7 +107,7 @@ class QuestPanel {
             ctx.fillText('暂无任务记录', W / 2, H / 2);
         } else {
             const startY = 70;
-            const itemH = 40;
+            const itemH = 52;
             const maxVisible = Math.floor((H - startY - 30) / itemH);
             const scrollStart = Math.max(0, Math.min(this.scrollIndex, questKeys.length - maxVisible));
             const scrollEnd = Math.min(questKeys.length, scrollStart + maxVisible);
@@ -104,23 +126,35 @@ class QuestPanel {
                     ctx.strokeRect(20, y, W - 40, itemH - 4);
                 }
 
-                // 任务 ID（截短显示）
+                // 任务名称
                 ctx.font = 'bold 13px monospace';
                 ctx.fillStyle = '#FFF';
                 ctx.textAlign = 'left';
-                ctx.fillText(qId.length > 20 ? qId.substring(0, 20) + '...' : qId, 35, y + 18);
+                ctx.fillText(this._getQuestName(qId), 35, y + 18);
+
+                // 任务描述
+                const desc = this._getQuestDesc(qId);
+                if (desc) {
+                    ctx.font = '11px monospace';
+                    ctx.fillStyle = '#999';
+                    const maxDescW = W - 180;
+                    const displayDesc = desc.length > 28 ? desc.substring(0, 28) + '...' : desc;
+                    ctx.fillText(displayDesc, 35, y + 34);
+                }
 
                 // 状态标签
                 const isActive = status === 'active';
                 const isCompleted = status === 'completed';
                 ctx.font = '11px monospace';
+                ctx.textAlign = 'right';
                 if (isCompleted) {
                     ctx.fillStyle = '#4CAF50';
-                    ctx.fillText('已完成', W - 100, y + 18);
+                    ctx.fillText('已完成', W - 35, y + 18);
                 } else if (isActive) {
                     ctx.fillStyle = '#FFC107';
-                    ctx.fillText('进行中', W - 100, y + 18);
+                    ctx.fillText('进行中', W - 35, y + 18);
                 }
+                ctx.textAlign = 'left';
             }
         }
 

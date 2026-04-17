@@ -41,6 +41,27 @@ class SlotPickerPanel {
 
     update(now) {
         const g = this.game;
+
+        // 二次确认删除状态
+        if (this._confirmDelete) {
+            if (g.input.isConfirmPressed(now)) {
+                g.input.lastActionTime = now;
+                g.saveManager.deleteSave(this._deleteSlot);
+                g.ui.showMessage(`存档 ${this._deleteSlot + 1} 已删除`);
+                this._confirmDelete = false;
+                this._deleteSlot = -1;
+                this.closeSlotPicker();
+                return;
+            }
+            if (g.input.isCancelPressed(now)) {
+                g.input.lastActionTime = now;
+                this._confirmDelete = false;
+                this._deleteSlot = -1;
+                return;
+            }
+            return; // 等待确认，不处理其他输入
+        }
+
         const slotCount = g.saveManager.getSlotCount();
 
         // 方向键切换槽位（使用 isJustPressed 检测按键）
@@ -85,7 +106,7 @@ class SlotPickerPanel {
         }
     }
 
-    /** 确认槽位选择并执行保存/读取 */
+    /** 确认槽位选择并执行保存/读取/删除 */
     _confirmAction(now) {
         const g = this.game;
         g.input.lastActionTime = now;
@@ -97,6 +118,7 @@ class SlotPickerPanel {
             } else {
                 g.ui.showMessage('保存失败！');
             }
+            this.closeSlotPicker();
         } else if (this.type === 'load') {
             if (g.saveManager.hasSlotSave(slot)) {
                 if (g.saveManager.load(g, slot)) {
@@ -107,8 +129,16 @@ class SlotPickerPanel {
             } else {
                 g.ui.showMessage(`存档 ${slot + 1} 为空`);
             }
+            this.closeSlotPicker();
+        } else if (this.type === 'delete') {
+            if (g.saveManager.hasSlotSave(slot)) {
+                // 二次确认删除
+                this._confirmDelete = true;
+                this._deleteSlot = slot;
+            } else {
+                g.ui.showMessage(`存档 ${slot + 1} 为空`);
+            }
         }
-        this.closeSlotPicker();
     }
 
     render() {
@@ -125,20 +155,42 @@ class SlotPickerPanel {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, W, H);
 
-        // 面板背景
+        // 标题
+        const titleMap = { save: '— 保存游戏 —', load: '— 读取存档 —', delete: '— 删除存档 —' };
+        const colorMap = { save: '#81C784', load: '#6ab7ff', delete: '#ef5350' };
+        const titleText = titleMap[this.type] || '— 选择存档 —';
+        const titleColor = colorMap[this.type] || '#6ab7ff';
         ctx.fillStyle = 'rgba(10, 15, 35, 0.95)';
-        ctx.strokeStyle = this.type === 'save' ? 'rgba(76, 175, 80, 0.6)' : 'rgba(100, 150, 255, 0.6)';
+        ctx.strokeStyle = titleColor;
         ctx.lineWidth = 2;
         this._roundRect(ctx, px, py, panelW, panelH, 10);
         ctx.fill();
         ctx.stroke();
 
-        // 标题
-        const titleText = this.type === 'save' ? '— 保存游戏 —' : '— 读取存档 —';
-        ctx.fillStyle = this.type === 'save' ? '#81C784' : '#6ab7ff';
+        ctx.fillStyle = titleColor;
         ctx.font = 'bold 14px monospace';
         ctx.textAlign = 'center';
         ctx.fillText(titleText, W / 2, py + 22);
+
+        // 删除二次确认提示
+        if (this._confirmDelete) {
+            const confirmY = py + panelH + 10;
+            ctx.fillStyle = 'rgba(30, 10, 10, 0.9)';
+            ctx.strokeStyle = '#ef5350';
+            ctx.lineWidth = 2;
+            this._roundRect(ctx, px + 30, confirmY, panelW - 60, 40, 6);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`确定删除存档 ${this._deleteSlot + 1} 吗？`, W / 2, confirmY + 16);
+            ctx.fillStyle = '#aaa';
+            ctx.font = '11px monospace';
+            ctx.fillText('确认键删除 / 取消键返回', W / 2, confirmY + 32);
+            ctx.textAlign = 'left';
+            return;
+        }
 
         // 3个槽位卡片
         const cardW = (panelW - 25) / 3;
@@ -199,6 +251,8 @@ class SlotPickerPanel {
                     port_town: '港口镇', mountain_path: '山间小径',
                     volcanic_cave: '火山洞窟', ice_cave: '冰之洞窟',
                     desert_ruins: '沙漠遗迹', sky_tower: '天空塔',
+                    bibo_town: '碧波镇', misty_swamp: '迷雾沼泽',
+                    reef_route: '礁石航道', red_rock_path: '赤岩古道',
                 };
                 ctx.fillStyle = '#99bbee';
                 ctx.fillText(mapNames[summary.mapId] || summary.mapId || '?', cx + cardW / 2, cardY + 46);

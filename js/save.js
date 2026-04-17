@@ -110,9 +110,13 @@ class SaveManager {
         // HP 不超过最大 HP
         if (c.currentHP > c.maxHP) c.currentHP = c.maxHP;
 
-        // baseStats 安全校验
-        c.baseStats = this._validateStatBlock(c.baseStats, { attack: 10, defense: 10, speed: 10 });
-        c.stats = this._validateStatBlock(c.stats, { attack: 10, defense: 10, speed: 10 });
+        // baseStats 安全校验（包含 hp 字段）
+        c.baseStats = this._validateStatBlock(c.baseStats, { hp: 30, attack: 10, defense: 10, speed: 10 });
+        c.stats = this._validateStatBlock(c.stats, { hp: 30, attack: 10, defense: 10, speed: 10 });
+
+        // HP 不超过最大 HP
+        if (typeof c.currentHP !== 'number' || isNaN(c.currentHP)) c.currentHP = c.maxHP;
+        if (c.currentHP > c.maxHP) c.currentHP = c.maxHP;
 
         // 技能列表校验（限制数量防内存爆炸）
         if (Array.isArray(c.skills)) {
@@ -133,19 +137,51 @@ class SaveManager {
         return c;
     }
 
-    /** 属性块安全校验（attack/defense/speed） */
+    /** 属性块安全校验（hp/attack/defense/speed） */
     _validateStatBlock(block, defaults) {
         if (!block || typeof block !== 'object' || Array.isArray(block)) {
             return { ...defaults };
         }
         const safe = {};
-        for (const stat of ['attack', 'defense', 'speed']) {
+        for (const stat of ['hp', 'attack', 'defense', 'speed']) {
             safe[stat] = this._clamp(
-                typeof block[stat] === 'number' ? block[stat] : defaults[stat],
-                0, 9999, defaults[stat]
+                typeof block[stat] === 'number' ? block[stat] : (defaults[stat] || 10),
+                0, 9999, defaults[stat] || 10
             );
         }
         return safe;
+    }
+
+    /**
+     * 修复旧存档中缺失的属性数据
+     * 旧版本存档可能缺少 baseStats.hp / stats.hp 字段，
+     * 导致升级时 calcStats 计算出 NaN。
+     * 此方法从物种数据重新获取种族值并重新计算属性。
+     */
+    _fixCreatureStats(creature, creaturesManager) {
+        if (!creature || !creaturesManager) return;
+        const speciesData = creaturesManager.getCreatureData(creature.id);
+        if (!speciesData || !speciesData.baseStats) return;
+
+        const speciesHP = speciesData.baseStats.hp;
+        // 检查 baseStats.hp 是否与物种数据一致，不一致则修复
+        if (typeof creature.baseStats.hp !== 'number' || creature.baseStats.hp !== speciesHP) {
+            creature.baseStats = { ...speciesData.baseStats };
+        }
+
+        // 用正确的 baseStats 重新计算 stats
+        const correctStats = creaturesManager.calcStats(creature.baseStats, creature.level);
+        creature.stats = correctStats;
+
+        // 修正 maxHP 和 currentHP
+        const correctMaxHP = correctStats.hp;
+        if (creature.maxHP !== correctMaxHP) {
+            // 按 HP 比例换算
+            const ratio = (creature.maxHP > 0 && typeof creature.currentHP === 'number')
+                ? creature.currentHP / creature.maxHP : 1;
+            creature.maxHP = correctMaxHP;
+            creature.currentHP = Math.min(Math.floor(correctMaxHP * ratio), correctMaxHP);
+        }
     }
 
     /**
@@ -220,10 +256,11 @@ class SaveManager {
             })),
             // 道具 & 金币
             items: [...(cm.items || [])],
+            keyItems: [...(gameManager.keyItems || [])],
             gold: this._clamp(cm.gold || 0, this.LIMITS.gold.min, this.LIMITS.gold.max, 0),
             starterChosen: !!cm.starterChosen,
             badges: [...(cm.badges || [])],
-            quests: cm.quests && typeof cm.quests === 'object' ? { ...cm.quests } : {},
+            quests: gameManager.quests && typeof gameManager.quests === 'object' ? { ...gameManager.quests } : {},
             defeatedTrainers: [...(cm.defeatedTrainers || [])],
             creatureDex: cm.creatureDex && typeof cm.creatureDex === 'object' ? { ...cm.creatureDex } : {},
             npcDex: cm.npcDex && typeof cm.npcDex === 'object' ? { ...cm.npcDex } : {},
@@ -308,6 +345,9 @@ class SaveManager {
                 statModifiers: { attack: 0, defense: 0, speed: 0 }
             }));
 
+            // 修复旧存档中缺失的属性数据（baseStats.hp / stats.hp）
+            cm.party.forEach(c => this._fixCreatureStats(c, cm));
+
             // 精灵存储
             const storageRaw = Array.isArray(data.storage) ? data.storage : [];
             if (storageRaw.length > this.LIMITS.storageSize.max) storageRaw.length = this.LIMITS.storageSize.max;
@@ -317,8 +357,14 @@ class SaveManager {
                 statModifiers: { attack: 0, defense: 0, speed: 0 }
             }));
 
+            // 修复存储中精灵的属性数据
+            cm.storage.forEach(c => this._fixCreatureStats(c, cm));
+
             // 道具（限制数量）
-            cm.items = Array.isArray(data.items) ? data.items.filter(i => i && typeof i.id === 'string').slice(0, 200) : [];
+            cm.items = Array.isArray(data.items) ? data.items.filter(i => i && (typeof i.itemId === 'string' || typeof i.id === 'string')).map(i => {
+                if (i.id && !i.itemId) i.itemId = i.id; // 兼容旧存档字段名
+                return i;
+            }).slice(0, 200) : [];
 
             // 金币上限钳制
             cm.gold = this._clamp(data.gold, this.LIMITS.gold.min, this.LIMITS.gold.max, 0);
@@ -335,6 +381,7 @@ class SaveManager {
             cm.badges = Array.isArray(data.badges) ? data.badges : [];
             gameManager.quests = (typeof data.quests === 'object' && data.quests !== null)
                 ? data.quests : {};
+            gameManager.keyItems = Array.isArray(data.keyItems) ? data.keyItems : [];
 
             // 地图 ID 校验
             const mapId = typeof data.currentMapId === 'string'

@@ -24,7 +24,7 @@ class NPCManager {
 
     /** 检查指定位置是否有NPC */
     getNPCAt(tileX, tileY) {
-        return this.npcs.find(n => n.x === tileX && n.y === tileY) || null;
+        return this.npcs.find(n => n.x === tileX && n.y === tileY && !n.hidden) || null;
     }
 
     /** 检查玩家面前是否有NPC */
@@ -97,6 +97,22 @@ class NPCManager {
                                 '南边的草丛里有很多野生精灵。'
                             ]);
                             gameManager.setState('DIALOG');
+                            // 赠送灵图仪和灵师手册
+                            if (!gameManager.keyItems) gameManager.keyItems = [];
+                            if (!gameManager.keyItems.includes('pokedex')) {
+                                gameManager.keyItems.push('pokedex');
+                                gameManager.ui.showMessage('获得了灵图仪！');
+                            }
+                            if (!gameManager.keyItems.includes('manual')) {
+                                gameManager.keyItems.push('manual');
+                                gameManager.ui.showMessage('获得了灵师手册！');
+                            }
+                            // 触发初始任务
+                            if (!gameManager.quests) gameManager.quests = {};
+                            if (!gameManager.quests['quest_start']) {
+                                gameManager.quests['quest_start'] = 'active';
+                                gameManager.ui.showMessage('接受了任务：前往碧波镇');
+                            }
                         }
                     }
                 }
@@ -186,7 +202,7 @@ class NPCManager {
         }
 
         // 检查挑战条件（需要击败一定数量训练师）
-        const defeatedTrainers = (gameManager.defeatedTrainers || []).length;
+        const defeatedTrainers = (gameManager.creaturesManager.defeatedTrainers || []).length;
         if (defeatedTrainers < 3) {
             gameManager.ui.showDialog([
                 ...npc.dialogs,
@@ -209,6 +225,7 @@ class NPCManager {
                 gameManager.currentBattleType = 'gym';
                 gameManager.gymLeaderId = npc.id;
                 gameManager.gymBadgeId = npc.badgeId || null;
+                gameManager.currentGymNPC = npc;
                 gameManager.startTrainerBattle(npc, leaderParty);
             }
         });
@@ -305,6 +322,11 @@ class NPCManager {
 
         // 检查条件对话（如持有灵晶碎片才有特殊对话）
         let dialogs = npc.dialogs || ['...'];
+        // 检查灵晶碎片收集进度
+        const crystalCount = Object.keys(gameManager.quests || {}).filter(k => k.startsWith('spirit_crystal_') && gameManager.quests[k] === 'collected').length;
+        if (crystalCount > 0) {
+            dialogs = [...dialogs, `你已收集了${crystalCount}块灵晶碎片。`];
+        }
         if (npc.dialogConditions) {
             for (const [condition, condDialogs] of Object.entries(npc.dialogConditions)) {
                 // hasSpiritCrystals: 检查是否有三块灵晶碎片
@@ -338,6 +360,10 @@ class NPCManager {
             if (itemId) {
                 if (!gameManager.quests) gameManager.quests = {};
                 gameManager.quests[itemId] = 'collected';
+                // 将物品添加到背包
+                if (gameManager.creaturesManager) {
+                    gameManager.creaturesManager.addItem(itemId, 1);
+                }
                 gameManager.ui.showMessage(`获得了 ${npc.name}！`);
             }
         });
