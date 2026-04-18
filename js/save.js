@@ -361,8 +361,8 @@ class SaveManager {
             cm.storage.forEach(c => this._fixCreatureStats(c, cm));
 
             // 道具（限制数量）
-            cm.items = Array.isArray(data.items) ? data.items.filter(i => i && (typeof i.itemId === 'string' || typeof i.id === 'string')).map(i => {
-                if (i.id && !i.itemId) i.itemId = i.id; // 兼容旧存档字段名
+            cm.items = Array.isArray(data.items) ? data.items.filter(i => i && (i.itemId !== undefined && i.itemId !== null) || (i.id !== undefined && i.id !== null)).map(i => {
+                if (i.id !== undefined && i.id !== null && i.itemId === undefined) i.itemId = i.id; // 兼容旧存档字段名
                 return i;
             }).slice(0, 200) : [];
 

@@ -533,6 +533,162 @@ class UIManager {
             this.renderHPBar(boxX + 150, iy + 20, 80, 8, creature.currentHP, creature.maxHP);
         });
 
+        // ===== 右侧详情面板 =====
+        const selected = list[this.creatureSelectIndex];
+        if (selected && selected.stats) {
+            const detailX = boxX + 270;
+            const detailY = boxY + 35;
+            const detailW = boxW - 280;
+            const detailH = boxH - 60;
+
+            // 面板背景
+            ctx.fillStyle = 'rgba(10, 15, 35, 0.85)';
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.lineWidth = 1;
+            this._roundRect(ctx, detailX, detailY, detailW, detailH, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            const px = detailX + 12;
+            let py = detailY + 20;
+
+            // 精灵像素画（大）
+            creaturesManager.renderCreature(ctx, selected.id, detailX + detailW / 2 - 24, detailY + 8, 48);
+
+            // 名称和等级
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${selected.name} Lv.${selected.level}`, detailX + detailW / 2, py + 48);
+            ctx.textAlign = 'left';
+
+            // 稀有度标签
+            const rarityMap = { common: '普通', rare: '稀有', legendary: '传说' };
+            const rarityColorMap = { common: '#AAA', rare: '#4FC3F7', legendary: '#FFD700' };
+            const data = creaturesManager.getCreatureData(selected.id);
+            const rarity = data ? data.rarity : 'common';
+            ctx.fillStyle = rarityColorMap[rarity] || '#AAA';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`[${rarityMap[rarity] || rarity}]`, detailX + detailW / 2, py + 64);
+            ctx.textAlign = 'left';
+
+            py += 80;
+
+            // 属性标签
+            const typeColor = creaturesManager.getTypeColor(selected.type);
+            const typeNames = { fire: '火', grass: '草', water: '水', electric: '电', rock: '岩', dark: '暗', dragon: '龙', ice: '冰', normal: '普通', poison: '毒' };
+            ctx.fillStyle = typeColor;
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(`属性: ${typeNames[selected.type] || selected.type}`, px, py);
+            py += 20;
+
+            // 分割线
+            ctx.fillStyle = 'rgba(255,215,0,0.2)';
+            ctx.fillRect(px, py, detailW - 24, 1);
+            py += 10;
+
+            // 基础属性
+            const stats = selected.stats || {};
+            const baseStats = selected.baseStats || {};
+            const statEntries = [
+                { label: '生命', key: 'hp', val: selected.maxHP, base: baseStats.hp, color: '#4CAF50' },
+                { label: '攻击', key: 'attack', val: stats.attack, base: baseStats.attack, color: '#F44336' },
+                { label: '防御', key: 'defense', val: stats.defense, base: baseStats.defense, color: '#2196F3' },
+                { label: '速度', key: 'speed', val: stats.speed, base: baseStats.speed, color: '#FFC107' },
+            ];
+            statEntries.forEach(s => {
+                ctx.fillStyle = '#AAA';
+                ctx.font = '11px monospace';
+                ctx.fillText(s.label, px, py);
+                // 属性条
+                const barX = px + 40;
+                const barW = detailW - 120;
+                const barH = 10;
+                const maxStat = 200; // 属性条最大值参考
+                const ratio = Math.min(1, (s.val || 0) / maxStat);
+                ctx.fillStyle = '#222';
+                ctx.fillRect(barX, py - 8, barW, barH);
+                ctx.fillStyle = s.color;
+                ctx.fillRect(barX, py - 8, barW * ratio, barH);
+                // 数值
+                ctx.fillStyle = '#FFF';
+                ctx.font = 'bold 11px monospace';
+                ctx.fillText(`${s.val}`, barX + barW + 6, py);
+                py += 18;
+            });
+
+            py += 4;
+
+            // 分割线
+            ctx.fillStyle = 'rgba(255,215,0,0.2)';
+            ctx.fillRect(px, py, detailW - 24, 1);
+            py += 12;
+
+            // 综合战斗力
+            const power = (stats.hp || 0) + (stats.attack || 0) * 2 + (stats.defense || 0) * 1.5 + (stats.speed || 0) * 1.2;
+            const powerInt = Math.floor(power);
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 13px monospace';
+            ctx.fillText('⚔ 综合战斗力', px, py);
+            ctx.fillStyle = '#FFF';
+            ctx.font = 'bold 18px monospace';
+            ctx.fillText(`${powerInt}`, px + 110, py + 2);
+            py += 24;
+
+            // 分割线
+            ctx.fillStyle = 'rgba(255,215,0,0.2)';
+            ctx.fillRect(px, py, detailW - 24, 1);
+            py += 12;
+
+            // 技能列表
+            ctx.fillStyle = '#AAA';
+            ctx.font = 'bold 11px monospace';
+            ctx.fillText('技能列表', px, py);
+            py += 16;
+
+            const skills = selected.skills || [];
+            if (skills.length > 0) {
+                skills.slice(0, 4).forEach((skill, si) => {
+                    const skillData = creaturesManager.getSkillData(skill.id);
+                    if (!skillData) return;
+                    const sTypeColor = creaturesManager.getTypeColor(skillData.type || 'normal');
+                    ctx.fillStyle = sTypeColor;
+                    ctx.font = '11px monospace';
+                    ctx.fillText(`${skillData.name}`, px + 4, py);
+                    // 威力
+                    if (skillData.power) {
+                        ctx.fillStyle = '#888';
+                        ctx.fillText(`威力:${skillData.power}`, px + 80, py);
+                    }
+                    // PP
+                    ctx.fillStyle = '#6a9';
+                    ctx.fillText(`PP:${skill.currentPP}/${skillData.pp}`, px + 140, py);
+                    py += 16;
+                });
+            } else {
+                ctx.fillStyle = '#555';
+                ctx.font = '11px monospace';
+                ctx.fillText('无技能', px + 4, py);
+            }
+
+            // 经验条
+            py = detailY + detailH - 20;
+            if (selected.expToNext > 0 && selected.level < 100) {
+                ctx.fillStyle = '#888';
+                ctx.font = '10px monospace';
+                ctx.fillText('EXP', px, py);
+                const expBarX = px + 30;
+                const expBarW = detailW - 70;
+                ctx.fillStyle = '#222';
+                ctx.fillRect(expBarX, py - 8, expBarW, 6);
+                ctx.fillStyle = '#4169E1';
+                ctx.fillRect(expBarX, py - 8, expBarW * Math.min(1, (selected.exp || 0) / selected.expToNext), 6);
+                ctx.fillStyle = '#AAA';
+                ctx.fillText(`${selected.exp || 0}/${selected.expToNext}`, expBarX + expBarW + 4, py);
+            }
+        }
+
         // 操作提示
         ctx.fillStyle = '#888';
         ctx.font = '11px monospace';

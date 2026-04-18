@@ -36,10 +36,16 @@ class MenuScene extends Scene {
         if (g.input.hasPendingClick()) {
             const click = g.input.getClick();
             if (click) {
-                const spacing = 190, startX = 45, cardW = 170, cardH = 280, cardY = 70;
-                for (let i = 0; i < 3; i++) {
+                // 使用与 renderStarterSelect 完全一致的坐标
+                const starters = g.ui.starterList || [];
+                const spacing = 190;
+                const startX = (g.ui.W - spacing * starters.length) / 2 + 20;
+                const cardY = 70;
+                const cardW = 170;
+                const cardH = 280;
+                for (let i = 0; i < starters.length; i++) {
                     const cx = startX + i * spacing;
-                    if (click.x >= cx && click.x <= cx + cardW && click.y >= cardY && click.y <= cardY + cardH) {
+                    if (click.x >= cx - 8 && click.x <= cx - 8 + cardW && click.y >= cardY - 8 && click.y <= cardY - 8 + cardH) {
                         g.ui.starterSelectedIndex = i;
                         if (g.ui.starterCallback) g.ui.starterCallback(i);
                         return;
