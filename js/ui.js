@@ -543,11 +543,10 @@ class UIManager {
 
             // 面板背景
             ctx.fillStyle = 'rgba(10, 15, 35, 0.85)';
+            ctx.fillRect(detailX, detailY, detailW, detailH);
             ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
             ctx.lineWidth = 1;
-            this._roundRect(ctx, detailX, detailY, detailW, detailH, 6);
-            ctx.fill();
-            ctx.stroke();
+            ctx.strokeRect(detailX, detailY, detailW, detailH);
 
             const px = detailX + 12;
             let py = detailY + 20;
