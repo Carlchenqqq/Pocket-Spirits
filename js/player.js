@@ -118,114 +118,154 @@ class Player {
         }
     }
 
-    /** 渲染玩家角色 */
+    /** 渲染玩家角色（中国风侠客造型） */
     render(ctx) {
         const px = this.x;
         const py = this.y;
         const ts = this.tileSize;
 
-        // 黑色轮廓线 - 身体
-        ctx.fillStyle = '#000';
-        ctx.fillRect(px + 7, py + 13, 18, 16);
+        // ===== 广袖（在身体后面绘制）=====
+        const sleeveSwing = this.moving ? (this.animFrame % 2 === 0 ? 1 : -1) : 0;
+        ctx.fillStyle = '#3d5c3a'; // 袖子暗色
+        ctx.fillRect(px + 4 + sleeveSwing, py + 14, 4, 10);  // 左袖
+        ctx.fillRect(px + 24 - sleeveSwing, py + 14, 4, 10); // 右袖
+        ctx.fillStyle = '#4a6741'; // 袖子主色
+        ctx.fillRect(px + 5 + sleeveSwing, py + 15, 3, 8);
+        ctx.fillRect(px + 24 - sleeveSwing, py + 15, 3, 8);
 
-        // 身体（红色衣服）
-        ctx.fillStyle = '#e74c3c';
+        // ===== 身体（交领右衽中式上衣）=====
+        ctx.fillStyle = '#000';
+        ctx.fillRect(px + 7, py + 13, 18, 16); // 身体轮廓
+        ctx.fillStyle = '#4a6741'; // 青绿色上衣
         ctx.fillRect(px + 8, py + 14, 16, 14);
 
-        // 衣服细节 - 领口
-        ctx.fillStyle = '#c0392b';
-        ctx.fillRect(px + 12, py + 14, 8, 2);
+        // 交领（V字领口）
+        ctx.fillStyle = '#8B0000'; // 暗红内衬
+        ctx.fillRect(px + 12, py + 14, 2, 6);  // 左领线
+        ctx.fillRect(px + 18, py + 14, 2, 6);  // 右领线
+        ctx.fillRect(px + 13, py + 14, 6, 2);  // 领口横线
+        ctx.fillRect(px + 14, py + 16, 4, 3);  // 领口内露
+
         // 腰带
-        ctx.fillStyle = '#2c3e50';
+        ctx.fillStyle = '#3d2b1f';
         ctx.fillRect(px + 8, py + 24, 16, 2);
-        // 腰带扣
-        ctx.fillStyle = '#FFD700';
-        ctx.fillRect(px + 14, py + 24, 4, 2);
+        // 玉佩
+        ctx.fillStyle = '#7FFFD4';
+        ctx.fillRect(px + 15, py + 24, 2, 2);
 
-        // 黑色轮廓线 - 头
-        ctx.fillStyle = '#000';
-        ctx.fillRect(px + 9, py + 1, 14, 15);
+        // 衣服下摆（略宽）
+        ctx.fillStyle = '#3d5c3a';
+        ctx.fillRect(px + 8, py + 26, 16, 2);
 
-        // 头
-        ctx.fillStyle = '#FFDAB9';
-        ctx.fillRect(px + 10, py + 2, 12, 13);
-
-        // 黑色轮廓线 - 头发
-        ctx.fillStyle = '#000';
-        ctx.fillRect(px + 7, py - 1, 18, 8);
-
-        // 头发
-        ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(px + 8, py, 16, 6);
-        // 发型高光线条
-        ctx.fillStyle = '#3d566e';
-        ctx.fillRect(px + 10, py + 1, 4, 2);
-        ctx.fillRect(px + 18, py + 2, 3, 1);
-
-        // 眼睛（根据朝向）- 更清晰的眼白和瞳孔
-        if (this.direction === 'down') {
-            // 眼白
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(px + 11, py + 7, 4, 4);
-            ctx.fillRect(px + 17, py + 7, 4, 4);
-            // 瞳孔
-            ctx.fillStyle = '#000';
-            ctx.fillRect(px + 12, py + 8, 2, 3);
-            ctx.fillRect(px + 18, py + 8, 2, 3);
-            // 瞳孔高光
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(px + 12, py + 8, 1, 1);
-            ctx.fillRect(px + 18, py + 8, 1, 1);
-        } else if (this.direction === 'up') {
-            // 背面不画眼睛，显示后脑勺头发
-            ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(px + 10, py + 2, 12, 6);
-        } else if (this.direction === 'left') {
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(px + 10, py + 7, 4, 4);
-            ctx.fillStyle = '#000';
-            ctx.fillRect(px + 10, py + 8, 2, 3);
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(px + 10, py + 8, 1, 1);
-        } else if (this.direction === 'right') {
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(px + 18, py + 7, 4, 4);
-            ctx.fillStyle = '#000';
-            ctx.fillRect(px + 20, py + 8, 2, 3);
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(px + 20, py + 8, 1, 1);
-        }
-
-        // 腿（行走动画）- 带鞋子细节
-        ctx.fillStyle = '#2c3e50';
+        // ===== 腿部 =====
+        ctx.fillStyle = '#2c2c2c';
         if (this.moving) {
             const legOffset = this.animFrame % 2 === 0 ? 2 : -2;
-            ctx.fillRect(px + 10 + legOffset, py + 26, 5, 4);
-            ctx.fillRect(px + 17 - legOffset, py + 26, 5, 4);
-            // 鞋子
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(px + 9 + legOffset, py + 29, 6, 3);
-            ctx.fillRect(px + 17 - legOffset, py + 29, 6, 3);
+            ctx.fillRect(px + 10 + legOffset, py + 27, 5, 3);
+            ctx.fillRect(px + 17 - legOffset, py + 27, 5, 3);
+            // 布鞋
+            ctx.fillStyle = '#3d2b1f';
+            ctx.fillRect(px + 9 + legOffset, py + 29, 6, 2);
+            ctx.fillRect(px + 17 - legOffset, py + 29, 6, 2);
         } else {
-            ctx.fillRect(px + 10, py + 26, 5, 4);
-            ctx.fillRect(px + 17, py + 26, 5, 4);
-            // 鞋子
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(px + 9, py + 29, 6, 3);
-            ctx.fillRect(px + 17, py + 29, 6, 3);
+            ctx.fillRect(px + 10, py + 27, 5, 3);
+            ctx.fillRect(px + 17, py + 27, 5, 3);
+            // 布鞋
+            ctx.fillStyle = '#3d2b1f';
+            ctx.fillRect(px + 9, py + 29, 6, 2);
+            ctx.fillRect(px + 17, py + 29, 6, 2);
         }
 
-        // 帽子 - 带帽檐阴影
+        // ===== 头部 =====
+        // 头发轮廓
         ctx.fillStyle = '#000';
-        ctx.fillRect(px + 5, py - 3, 22, 5);
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(px + 6, py - 2, 20, 4);
-        // 帽檐阴影
-        ctx.fillStyle = '#c0392b';
-        ctx.fillRect(px + 6, py + 1, 20, 1);
-        // 帽子高光
-        ctx.fillStyle = '#ff6b6b';
-        ctx.fillRect(px + 8, py - 1, 6, 2);
+        ctx.fillRect(px + 9, py + 1, 14, 14);
+        // 脸
+        ctx.fillStyle = '#FFE0BD';
+        ctx.fillRect(px + 10, py + 2, 12, 12);
+
+        // 头发（黑色，覆盖头顶和两侧）
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(px + 8, py, 16, 5);  // 头顶
+        ctx.fillRect(px + 8, py + 5, 2, 4);  // 左鬓角
+        ctx.fillRect(px + 22, py + 5, 2, 4); // 右鬓角（px+22=8+14, 但头宽14所以22=8+14不对，应该是px+20）
+        // 修正右鬓角
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(px + 20, py + 5, 2, 3); // 右鬓角
+
+        // 发髻（头顶圆形发髻）
+        ctx.fillStyle = '#000';
+        ctx.fillRect(px + 12, py - 3, 8, 5); // 发髻轮廓
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(px + 13, py - 2, 6, 4); // 发髻主体
+        // 发带（金色）
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(px + 11, py + 1, 10, 1); // 发带
+
+        // ===== 面部（根据朝向）=====
+        if (this.direction === 'down') {
+            // 眼睛（东方细长眼）
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(px + 11, py + 7, 3, 2); // 左眼白
+            ctx.fillRect(px + 18, py + 7, 3, 2); // 右眼白
+            ctx.fillStyle = '#3d2b1f';
+            ctx.fillRect(px + 12, py + 7, 2, 2); // 左瞳孔
+            ctx.fillRect(px + 19, py + 7, 2, 2); // 右瞳孔
+            // 腮红
+            ctx.fillStyle = '#FFB6C1';
+            ctx.fillRect(px + 10, py + 10, 2, 1);
+            ctx.fillRect(px + 20, py + 10, 2, 1);
+            // 嘴巴
+            ctx.fillStyle = '#c0392b';
+            ctx.fillRect(px + 15, py + 11, 2, 1);
+        } else if (this.direction === 'up') {
+            // 背面：后脑勺头发
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(px + 10, py + 2, 12, 8);
+            // 发髻背面
+            ctx.fillStyle = '#000';
+            ctx.fillRect(px + 13, py - 2, 6, 3);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(px + 14, py - 1, 4, 2);
+            // 发带背面
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(px + 11, py + 1, 10, 1);
+        } else if (this.direction === 'left') {
+            // 左面：单眼
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(px + 10, py + 7, 3, 2);
+            ctx.fillStyle = '#3d2b1f';
+            ctx.fillRect(px + 10, py + 7, 2, 2);
+            // 腮红
+            ctx.fillStyle = '#FFB6C1';
+            ctx.fillRect(px + 9, py + 10, 2, 1);
+            // 嘴巴
+            ctx.fillStyle = '#c0392b';
+            ctx.fillRect(px + 12, py + 11, 2, 1);
+            // 侧面发髻
+            ctx.fillStyle = '#000';
+            ctx.fillRect(px + 14, py - 2, 5, 3);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(px + 14, py - 1, 4, 2);
+        } else if (this.direction === 'right') {
+            // 右面：单眼
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(px + 19, py + 7, 3, 2);
+            ctx.fillStyle = '#3d2b1f';
+            ctx.fillRect(px + 20, py + 7, 2, 2);
+            // 腮红
+            ctx.fillStyle = '#FFB6C1';
+            ctx.fillRect(px + 21, py + 10, 2, 1);
+            // 嘴巴
+            ctx.fillRect(px + 18, py + 11, 2, 1);
+            ctx.fillStyle = '#c0392b';
+            ctx.fillRect(px + 18, py + 11, 2, 1);
+            // 侧面发髻
+            ctx.fillStyle = '#000';
+            ctx.fillRect(px + 13, py - 2, 5, 3);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(px + 14, py - 1, 4, 2);
+        }
     }
 
     /** 获取玩家面前一格的位置 */
