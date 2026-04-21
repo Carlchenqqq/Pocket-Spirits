@@ -112,9 +112,9 @@ class GameManager {
         if (exploreScene) exploreScene.startTrainerBattle(npc, trainerParty);
     }
 
-    openShop() {
+    openShop(shopType) {
         const exploreScene = this.sceneManager.scenes.get('explore');
-        if (exploreScene) exploreScene.openShop();
+        if (exploreScene) exploreScene.openShop(shopType);
     }
 
     /** 渲染 */

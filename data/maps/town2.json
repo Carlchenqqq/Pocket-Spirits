@@ -75,6 +75,7 @@
       "x": 7,
       "y": 6,
       "type": "shop",
+      "shopType": "general",
       "name": "货郎老黄",
       "dialogs": [
         "欢迎光临！需要什么道具吗？",

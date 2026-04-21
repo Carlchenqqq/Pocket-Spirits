@@ -55,28 +55,29 @@ class ShopManager {
     }
 
     /**
-     * 从 GameData.items 动态构建商品列表
+     * 从 creaturesManager.itemsData 动态构建商品列表
      * @param {string} shopType - 商店类型 key（SHOP_TYPES 的键）
+     * @param {Object} creaturesManager - CreaturesManager 实例
      * @returns {Array} 商品数组
      */
-    _buildShopItems(shopType) {
+    _buildShopItems(shopType, creaturesManager) {
         const config = SHOP_TYPES[shopType];
-        if (!config || typeof GameData === 'undefined' || !GameData.items) {
+        if (!config || !creaturesManager || !Array.isArray(creaturesManager.itemsData)) {
             return this._getDefaultItems();
         }
 
         const items = [];
-        Object.values(GameData.items).forEach(item => {
-            // 只出售有售价且属于该商店类别的物品
-            if (item.shopPrice > 0 && config.categories.includes(item.category)) {
+        creaturesManager.itemsData.forEach(item => {
+            // 只出售有售价且属于该商店类型的物品（type 字段匹配 categories）
+            if (item.price > 0 && config.categories.includes(item.type)) {
                 items.push({
                     itemId: item.id,
-                    label: `${item.name.padEnd(6, '\u3000')}${String(item.shopPrice).padStart(4)}G`,
+                    label: `${String(item.name).padEnd(6, '\u3000')}${String(item.price).padStart(4)}G`,
                     _name: item.name,
-                    _price: item.shopPrice,
+                    _price: item.price,
                     _desc: item.desc || '',
-                    _category: item.category,
-                    _icon: item.icon || ''
+                    _category: item.type,
+                    _icon: ''
                 });
             }
         });
@@ -84,15 +85,13 @@ class ShopManager {
         return items.length > 0 ? items : this._getDefaultItems();
     }
 
-    /** 默认商品列表（兼容模式） */
+    /** 默认商品列表（兼容模式 - 当 items.json 加载失败时使用） */
     _getDefaultItems() {
         return [
-            { itemId: 1, label: '精灵球    200G', _name: '精灵球', _price: 200, _desc: '捕捉野生精灵的基础球' },
-            { itemId: 2, label: '超级球    600G', _name: '超级球', _price: 600, _desc: '比精灵球更有效的捕捉道具' },
-            { itemId: 3, label: '伤药      100G', _name: '伤药', _price: 100, _desc: '恢复精灵20点HP' },
-            { itemId: 4, label: '好伤药   300G', _name: '好伤药', _price: 300, _desc: '恢复精灵50点HP' },
-            { itemId: 5, label: '解毒药   100G', _name: '解毒药', _price: 100, _desc: '解除中毒状态' },
-            { itemId: 6, label: '高级球   1200G', _name: '高级球', _price: 1200, _desc: '捕获率更高的高级精灵球' }
+            { itemId: 1, label: '精灵球    100G', _name: '精灵球', _price: 100, _desc: '基础捕捉道具，用于捕捉野生精灵' },
+            { itemId: 2, label: '超级球    300G', _name: '超级球', _price: 300, _desc: '高级捕捉道具，捕捉率更高' },
+            { itemId: 3, label: '伤药       50G', _name: '伤药', _price: 50, _desc: '恢复精灵50点HP' },
+            { itemId: 4, label: '好伤药   150G', _name: '好伤药', _price: 150, _desc: '恢复精灵200点HP' }
         ];
     }
 
@@ -101,8 +100,11 @@ class ShopManager {
         this.shopItems = this._getDefaultItems();
     }
 
-    /** 打开商店 */
-    open(shopType) {
+    /** 打开商店
+     *  @param {string} shopType - 商店类型（ball/medicine/general 等），默认 'general'
+     *  @param {Object} creaturesManager - CreaturesManager 实例，用于动态加载商品
+     */
+    open(shopType, creaturesManager) {
         this.active = true;
         this.selectedIndex = 0;
         this.message = '';
@@ -114,11 +116,11 @@ class ShopManager {
         // 根据商店类型加载商品
         if (shopType && SHOP_TYPES[shopType]) {
             this.currentShopType = shopType;
-            this.shopItems = this._buildShopItems(shopType);
+            this.shopItems = this._buildShopItems(shopType, creaturesManager);
         } else {
             // 默认打开综合商店
-            this.currentShopType = 'general';
-            this.shopItems = this._buildShopItems('general');
+            this.currentShopType = shopType || 'general';
+            this.shopItems = this._buildShopItems(this.currentShopType, creaturesManager);
         }
     }
 

@@ -50,7 +50,7 @@
       "name": "登山者老赵",
       "dialogs": ["在这险峻的古道，只有强者才能通行！", "来，让我试试你的实力！"],
       "defeatDialogs": ["不错！继续前进吧！", "炎阳城就在北方了。"],
-      "creatures": [{"creatureId": 12, "level": 14}, {"creatureId": 13, "level": 15}],
+      "creatures": [{"creatureId": 17, "level": 14}, {"creatureId": 16, "level": 15}],
       "defeated": false,
       "reward": 400
     },
@@ -74,7 +74,7 @@
       "name": "可疑的矿工",
       "dialogs": ["喂，看你很不顺眼啊。", "这条路不是随便走的！"],
       "defeatDialogs": ["可恶…组织的任务失败了…", "早晚…会回来的…"],
-      "creatures": [{"creatureId": 12, "level": 15}, {"creatureId": 14, "level": 16}],
+      "creatures": [{"creatureId": 19, "level": 15}, {"creatureId": 14, "level": 16}],
       "defeated": false,
       "reward": 450,
       "isGrunt": true
@@ -93,10 +93,11 @@
     }
   ],
   "wildCreatures": [
-    {"id": 12, "minLevel": 12, "maxLevel": 16, "weight": 30},
-    {"id": 13, "minLevel": 13, "maxLevel": 17, "weight": 15},
+    {"id": 16, "minLevel": 12, "maxLevel": 16, "weight": 30},
+    {"id": 17, "minLevel": 13, "maxLevel": 17, "weight": 20},
     {"id": 20, "minLevel": 12, "maxLevel": 15, "weight": 25},
-    {"id": 22, "minLevel": 15, "maxLevel": 18, "weight": 10}
+    {"id": 22, "minLevel": 14, "maxLevel": 17, "weight": 15},
+    {"id": 19, "minLevel": 14, "maxLevel": 16, "weight": 10}
   ],
   "layers": {
     "tiles": [

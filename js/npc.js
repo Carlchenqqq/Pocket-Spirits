@@ -97,11 +97,10 @@ class NPCManager {
                                 '南边的草丛里有很多野生精灵。'
                             ]);
                             gameManager.setState('DIALOG');
-                            // 赠送灵图仪和灵师手册
+                            // 赠送灵师手册（含灵兽图鉴功能）
                             if (!gameManager.keyItems) gameManager.keyItems = [];
                             if (!gameManager.keyItems.includes('pokedex')) {
                                 gameManager.keyItems.push('pokedex');
-                                gameManager.ui.showMessage('获得了灵图仪！');
                             }
                             if (!gameManager.keyItems.includes('manual')) {
                                 gameManager.keyItems.push('manual');
@@ -165,9 +164,10 @@ class NPCManager {
     /** 处理商店NPC */
     _handleShop(npc, gameManager) {
         gameManager.creaturesManager.recordNPCEncounter(npc.id, npc.name, npc.type);
+        const shopType = npc.shopType || 'general'; // 默认杂货铺
         gameManager.ui.showDialog(npc.dialogs, () => {
             // 对话结束后由 DialogScene._finishDialog() 先 pop 再执行此回调
-            gameManager.openShop();
+            gameManager.openShop(shopType);
         });
         gameManager.setState('DIALOG');
     }

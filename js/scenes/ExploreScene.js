@@ -48,6 +48,12 @@ class ExploreScene extends Scene {
             this.gameMenu.closeMenu();
             this.slotPicker.openSlotPicker(type);
         };
+
+        // BagPanel 回调：使用灵师手册 → 打开手册面板
+        this.bagPanel.onUseManual = () => {
+            this.dexPanel.openDex();
+            this.dexPanel.page = 'guide'; // 直接打开指南页
+        };
     }
 
     onEnter(params) {
@@ -299,8 +305,8 @@ class ExploreScene extends Scene {
         g.sceneManager.push('battle');
     }
 
-    openShop() {
-        this.game.shopManager.open();
+    openShop(shopType) {
+        this.game.shopManager.open(shopType, this.game.creaturesManager);
         this.game.sceneManager.push('shop');
     }
 

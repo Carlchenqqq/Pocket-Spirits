@@ -7,7 +7,7 @@ class GameMenuPanel {
         this.game = game;
         this.open = false;
         this.index = 0;
-        this.items = ['精灵', '背包', '图鉴', '徽章', '任务', '保存', '读取', '删除存档', '关闭'];
+        this.items = ['精灵', '背包', '手册', '徽章', '任务', '保存', '读取', '删除存档', '关闭'];
 
         // 回调：由 ExploreScene 注入
         this.onOpenParty = null;       // 打开队伍菜单
@@ -83,7 +83,7 @@ class GameMenuPanel {
             case 1: // 背包
                 if (this.onOpenBag) this.onOpenBag();
                 break;
-            case 2: // 图鉴
+            case 2: // 手册
                 if (this.onOpenDex) this.onOpenDex();
                 break;
             case 3: // 徽章

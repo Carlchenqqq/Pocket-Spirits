@@ -83,6 +83,7 @@
       "x": 7,
       "y": 6,
       "type": "shop",
+      "shopType": "ball",
       "name": "球匠阿牛",
       "dialogs": [
         "欢迎！专业的精灵球就来我这里！",

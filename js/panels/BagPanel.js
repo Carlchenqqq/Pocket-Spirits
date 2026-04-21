@@ -10,6 +10,7 @@ class BagPanel {
         // 回调：由 ExploreScene 注入
         this.onClose = null;  // 关闭背包面板
         this.onEvolution = null; // 进化石使用回调 (creature, stoneType) => void
+        this.onUseManual = null; // 使用灵师手册回调 -> 打开手册面板
     }
 
     openBag() {
@@ -134,7 +135,13 @@ class BagPanel {
 
             case 'ball':
             case 'key_item':
-                g.ui.showMessage(`${data.name}无法在这里使用（战斗中使用）`);
+                // 灵师手册：打开手册面板
+                if (data.id === 'manual' && this.onUseManual) {
+                    this.closeBag();
+                    this.onUseManual();
+                } else {
+                    g.ui.showMessage(`${data.name}无法在这里使用（战斗中使用）`);
+                }
                 break;
 
             case 'stone': {
