@@ -17,14 +17,14 @@
       "y": 14,
       "targetMap": "route_001",
       "targetX": 9,
-      "targetY": 2
+      "targetY": 1
     },
     {
       "x": 11,
       "y": 14,
       "targetMap": "route_001",
       "targetX": 10,
-      "targetY": 2
+      "targetY": 1
     }
   ],
   "npcs": [
