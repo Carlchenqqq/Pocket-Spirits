@@ -8,7 +8,7 @@ const SHOP_TYPES = {
     general: {
         name: '杂货铺',
         npc: 'shop_keeper',
-        categories: ['misc', 'key_item'],
+        categories: ['misc', 'key_item', 'ball', 'potion'],
         welcome: '欢迎光临！有什么需要的吗？',
         goodbye: '欢迎下次再来！'
     },
